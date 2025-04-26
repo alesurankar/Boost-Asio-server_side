@@ -28,7 +28,7 @@ void broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender) {
 }
 
 // Function to send a basic signal to FastAPI server (GET request)
-void send_signal_to_fastapi() {
+void send_signal_to_fastapi(const std::string& username) {
     try {
         // The I/O context
         boost::asio::io_context ioc;
@@ -46,7 +46,9 @@ void send_signal_to_fastapi() {
         boost::asio::connect(socket, results.begin(), results.end());
 
         // Create the HTTP GET request
-        http::request<http::string_body> req{ http::verb::get, "/signal", 11 };
+        // Send username as part of the URL path(table_name)
+        std::string url = "/check-users/" + username;  // use username as table_name
+        http::request<http::string_body> req{ http::verb::get, url, 11 };
         req.set(http::field::host, "localhost");
         req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
@@ -72,7 +74,8 @@ void send_signal_to_fastapi() {
 }
 
 int main() {
-    send_signal_to_fastapi();
+    std::string username = "user123"; // This could be received from the client
+    send_signal_to_fastapi(username);
 
     boost::asio::io_context io;
     tcp::acceptor acceptor(io, tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 1234));
@@ -97,6 +100,9 @@ int main() {
                 boost::asio::write(*socket, boost::asio::buffer(welcome));
 
                 client_names[socket] = username;
+
+                // Send the username to FastAPI for table existence check
+                send_signal_to_fastapi(username);
 
                 char data[128];
                 while (true) {
