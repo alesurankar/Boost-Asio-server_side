@@ -7,7 +7,9 @@
 #include <vector>
 #include <map>
 
-using boost::asio::ip::tcp; 
+using boost::asio::ip::tcp;
+namespace beast = boost::beast;
+namespace http = beast::http;
 
 std::atomic<int> client_counter{ 0 };
 std::vector<std::shared_ptr<tcp::socket>> clients;
@@ -25,13 +27,52 @@ void broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender) {
     }
 }
 
-int main() {
-    // Adding a simple use of Boost.Beast's HTTP functionality
-    boost::beast::http::request<boost::beast::http::string_body> req{ boost::beast::http::verb::get, "/", 11 };
-    req.set(boost::beast::http::field::host, "localhost");
-    req.set(boost::beast::http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+// Function to send a basic signal to FastAPI server (GET request)
+void send_signal_to_fastapi() {
+    try {
+        // The I/O context
+        boost::asio::io_context ioc;
 
-    std::cout << "Using Boost.Beast version: " << BOOST_BEAST_VERSION_STRING << std::endl;
+        // Resolver to convert the server address and port
+        boost::asio::ip::tcp::resolver resolver(ioc);
+
+        // FastAPI server address and port
+        auto const results = resolver.resolve("127.0.0.1", "8000");
+
+        // Create the socket
+        boost::asio::ip::tcp::socket socket(ioc);
+
+        // Connect to the FastAPI server
+        boost::asio::connect(socket, results.begin(), results.end());
+
+        // Create the HTTP GET request
+        http::request<http::string_body> req{ http::verb::get, "/signal", 11 };
+        req.set(http::field::host, "localhost");
+        req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+        // Send the request to the server
+        http::write(socket, req);
+
+        // Prepare to read the response
+        beast::flat_buffer buffer;
+        http::response<http::string_body> res;
+
+        // Receive the response
+        http::read(socket, buffer, res);
+
+        // Output the response
+        std::cout << "Response from FastAPI: " << res << std::endl;
+
+        // Gracefully close the connection
+        socket.close();
+    }
+    catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+}
+
+int main() {
+    send_signal_to_fastapi();
 
     boost::asio::io_context io;
     tcp::acceptor acceptor(io, tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), 1234));
@@ -49,14 +90,12 @@ int main() {
         // Start a new thread to handle the connected client
         std::thread([socket, client_id]() mutable {
             try {
-                // Authentication step (expecting username)
                 std::string username;
                 boost::asio::read_until(*socket, boost::asio::dynamic_buffer(username), '\n');
-                username = username.substr(0, username.find('\n')); // Clean username
+                username = username.substr(0, username.find('\n'));
                 std::string welcome = "Welcome, " + username + "\n";
                 boost::asio::write(*socket, boost::asio::buffer(welcome));
 
-                // Store the username
                 client_names[socket] = username;
 
                 char data[128];
