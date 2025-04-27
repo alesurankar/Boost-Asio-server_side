@@ -21,6 +21,7 @@ private:
     void Broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender);
     bool SendSignalToFastAPI(const std::string& username);
     void RemoveClient(std::shared_ptr<tcp::socket> socket);
+    void BroadcastMessage(const std::string& message);
 private:
     boost::asio::io_context& io_;
     tcp::acceptor acceptor_;
@@ -28,4 +29,5 @@ private:
     std::vector<std::shared_ptr<tcp::socket>> clients_;
     std::mutex clients_mutex_;
     std::map<std::shared_ptr<tcp::socket>, std::string> client_names_;
+    std::atomic<bool> valid_username_check;
 };

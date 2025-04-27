@@ -1,4 +1,4 @@
-#include "ChatServer.h"
+﻿#include "ChatServer.h"
 
 namespace beast = boost::beast;
 namespace http = beast::http;
@@ -27,7 +27,7 @@ void ChatServer::AcceptConnections() {
 
             std::thread(&ChatServer::HandleClient, this, socket, client_id).detach();
         }
-        AcceptConnections(); // Accept the next connection
+        AcceptConnections();
         });
 }
 
@@ -35,30 +35,58 @@ void ChatServer::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id
     try {
         std::string username;
         boost::asio::streambuf buf;
-        boost::asio::read_until(*socket, buf, '\n');
-        std::istream is(&buf);
-        std::getline(is, username);
 
+        while (true)
         {
-            std::lock_guard<std::mutex> lock(clients_mutex_);
-            client_names_[socket] = username;
-        }
+            boost::asio::read_until(*socket, buf, '\n');
+            std::istream is(&buf);
+            std::string username;
+            std::getline(is, username);
 
-        bool valid_username_check = SendSignalToFastAPI(username);
-        std::string log_message;
-        if (valid_username_check) {
-            log_message = "Welcome, " + username + "\n";
-        }
-        else {
-            log_message = "Username " + username + " does not exist\n";
-        }
-        boost::asio::write(*socket, boost::asio::buffer(log_message));
+            // Trim any extra spaces or newlines from the username
+            username.erase(username.find_last_not_of(" \n\r\t") + 1);
 
+            // Debug: Output the received username
+            std::cout << "Received username: '" << username << "'\n";
+
+            valid_username_check = SendSignalToFastAPI(username);
+            if (valid_username_check) {
+                // Lock mutex to modify shared resource (client_names_)
+                {
+                    std::lock_guard<std::mutex> lock(clients_mutex_);
+                    client_names_[socket] = username;  // Store the client and its username
+                }
+
+                // Send welcome message to the client
+                std::string log_message = "Welcome, " + username + "\n";
+                std::cout << "Sending welcome message: " << log_message << std::endl;
+                boost::asio::write(*socket, boost::asio::buffer(log_message));
+
+                // Broadcast the join message to others
+                std::string join_message = username + " has joined the game!\n";
+                Broadcast(join_message, socket);
+
+                // Exit the loop as username is valid and user can join the chat
+                break;
+            }
+            else {
+                // Send error message to the client if username doesn't exist
+                std::string error_message = "Username " + username + " does not exist. Try again: ";
+                std::cout << "Sending error message: " << error_message << std::endl;
+                boost::asio::write(*socket, boost::asio::buffer(error_message));
+
+                // Clear the buffer before reading the next input
+                buf.consume(buf.size());
+            }
+        }
         char data[128];
-        while (true) {
+        while (socket->is_open()) {
             boost::system::error_code ec;
             size_t len = socket->read_some(boost::asio::buffer(data), ec);
-            if (ec) break;
+            if (ec) {
+                std::cerr << "Error reading from client: " << ec.message() << "\n";
+                break;
+            }
             std::string msg = username + ": " + std::string(data, len) + "\n";
             std::cout << msg;
             Broadcast(msg, socket);
@@ -74,15 +102,19 @@ void ChatServer::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id
     RemoveClient(socket);
 }
 
+
 void ChatServer::Broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender) {
-    std::lock_guard<std::mutex> lock(clients_mutex_);
     for (auto& client : clients_) {
-        if (client != sender) {
+        if (client != sender && client->is_open()) {  // Only write if the socket is open
             boost::system::error_code ec;
             boost::asio::write(*client, boost::asio::buffer(msg), ec);
+            if (ec) {
+                std::cerr << "Failed to send message to a client: " << ec.message() << "\n";
+            }
         }
     }
 }
+
 
 bool ChatServer::SendSignalToFastAPI(const std::string& username) {
     try {
@@ -119,14 +151,37 @@ bool ChatServer::SendSignalToFastAPI(const std::string& username) {
 
 void ChatServer::RemoveClient(std::shared_ptr<tcp::socket> socket) {
     std::lock_guard<std::mutex> lock(clients_mutex_);
-    clients_.erase(std::remove(clients_.begin(), clients_.end(), socket), clients_.end());
 
     auto it = client_names_.find(socket);
     if (it != client_names_.end()) {
-        std::cout << "Client (" << it->second << ") disconnected\n";
+        std::string username = it->second;
+
+        std::cout << "Client (" << username << ") disconnected\n";
+
+        // NEW: Broadcast to everyone that this player left
+        std::string leave_message = username + " has left the game!\n";
+        Broadcast(leave_message, socket); // send to others
+
         client_names_.erase(it);
     }
     else {
         std::cout << "Client disconnected\n";
+    }
+
+    // Safe removal of disconnected clients
+    clients_.erase(std::remove(clients_.begin(), clients_.end(), socket), clients_.end());
+}
+
+void ChatServer::BroadcastMessage(const std::string& message) {
+    for (auto& client : clients_) {
+        if (client && client->is_open()) {  // Check if socket is still open
+            boost::asio::async_write(*client, boost::asio::buffer(message + "\n"),
+                [](boost::system::error_code ec, std::size_t /*length*/) {
+                    if (ec) {
+                        std::cout << "Failed to send message: " << ec.message() << "\n";
+                    }
+                }
+            );
+        }
     }
 }
