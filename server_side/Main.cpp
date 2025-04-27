@@ -5,4 +5,6 @@ int main() {
     ChatServer server(io, "127.0.0.1", 1234);
     server.Start();
     io.run();
+
+    return 0;
 }
