@@ -1,29 +1,39 @@
 #pragma once
 #include "ChatServer.h"
 #include "App.h"
+#include <memory>
+#include <chrono>
 
 
 
 int main() 
 {
-    //App app;
+    App app;
 
     std::string command;
+    std::shared_ptr<ChatServer> global_server;
 
-    boost::asio::io_context io;
-    ChatServer server(io, "127.0.0.1", 1234);
-    //std::thread networking([&]() 
-    //    { 
-            server.Start();
-            io.run(); 
-    //    });
+    try {
+        boost::asio::io_context io;
+        global_server = std::make_shared<ChatServer>(io, 1234);
 
-    //while (true)
-    //{
-    //    app.Run();
-    //}
-    //
-    //networking.join();
+        std::thread networking([&]()
+            {
+                io.run();
+            });
+
+        while (true)
+        {
+            app.Run();
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        }
+        networking.join();
+    }
+    catch (const std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
     return 0;
 }
 

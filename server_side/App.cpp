@@ -6,7 +6,23 @@ App::App()
 
 void App::Run()
 {
-    UpdatePos(msg.MSGToApp());
+    ProcessReceivedMessage();
+}
+
+void App::ProcessReceivedMessage()
+{
+    std::lock_guard<std::mutex> lock(mtx);
+
+    if (!command_queue.empty())
+    {
+        std::string command = command_queue.front();
+        command_queue.pop();
+
+        if (!command.empty())
+        {
+            UpdatePos(command);
+        }
+    }
 }
 
 void App::UpdatePos(const std::string& command)

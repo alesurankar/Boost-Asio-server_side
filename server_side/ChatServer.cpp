@@ -1,131 +1,119 @@
 ﻿#include "ChatServer.h"
 
-using namespace boost;
 
-ChatServer::ChatServer(asio::io_context& io_in, const std::string& address_in, unsigned short port_in)
-    : 
-    io(io_in),
-    acceptor(io_in, tcp::endpoint(asio::ip::make_address(address_in), port_in))
-{}
-
-void ChatServer::Start() 
+ChatServer::ChatServer(boost::asio::io_context& io_context, short port)
+    :
+    acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
 {
-    AcceptConnections();
+    Accept();
 }
 
-
-void ChatServer::AcceptConnections() 
+void ChatServer::Join(std::shared_ptr<ChatSession> session)
 {
-    auto socket = std::make_shared<tcp::socket>(io);
-    acceptor.async_accept(*socket, [this, socket](system::error_code ec)
-        {
-            if (!ec)
-            {
-                int client_id = client_counter++;
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    clients.push_back(socket);
-                    std::cout << "Client " << client_id << " trying to connect\n";
-                }
+    sessions_.insert(session);
+}
 
-                std::thread(&ChatServer::HandleClient, this, socket, client_id).detach();
-                std::thread(&ChatServer::SendToClient, this, socket, client_id).detach();
-            }
-            AcceptConnections();
+void ChatServer::Leave(std::shared_ptr<ChatSession> session)
+{
+    sessions_.erase(session);
+}
+
+void ChatServer::Broadcast(const std::string& msg)
+{
+    for (auto& s : sessions_) 
+    {
+        s->Deliver(msg);
+    }
+}
+
+void ChatServer::Accept()
+{
+    acceptor_.async_accept([this](boost::system::error_code ec, tcp::socket socket) 
+        {
+        if (!ec) 
+        {
+            auto session = std::make_shared<ChatSession>(std::move(socket), this);
+            Join(session);
+            session->Start();
+        }
+        Accept(); // keep accepting
         });
 }
 
 
-void ChatServer::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id) 
+
+ChatSession::ChatSession(tcp::socket socket, ChatServer* server)
+    :
+    socket_(std::move(socket)), server_(server)
+{}
+
+void ChatSession::Start()
 {
-    try 
-    {
-        std::string username;
-        asio::streambuf buf;
-
-        while (true)
-        {
-            asio::read_until(*socket, buf, '\n');
-            std::istream is(&buf);
-            std::getline(is, username);
-
-            client_names[socket] = username;
-
-            std::string log_message = "Welcome, " + username + "\n";
-            std::cout << username << " joined the server\n";
-            asio::async_write(*socket, asio::buffer(log_message));
-            break;
-        }
-        char data[128];
-        while (socket->is_open()) 
-        {
-            system::error_code ec;
-            size_t len = socket->read_some(asio::buffer(data), ec);
-
-            if (ec) 
-            {
-                std::cerr << "Error reading from client: " << ec.message() << "\n";
-                break;
-            }
-
-            std::string message(data, len);
-            msg.ServerToMSG(message);
-        }
-    }
-    catch (const std::exception& e) 
-    {
-        std::cerr << "Exception in client thread: " << e.what() << "\n";
-    }
-    catch (...) 
-    {
-        std::cerr << "Unknown exception in client thread\n";
-    }
-
-    RemoveClient(socket);
+    ReadMessage();
 }
 
-
-void ChatServer::SendToClient(std::shared_ptr<tcp::socket> socket, int client_id)
+void ChatSession::Deliver(const std::string& msg)
 {
-    try
+    bool write_in_progress = !write_msgs_.empty();
+    write_msgs_.push_back(msg);
+    if (!write_in_progress) 
     {
-        while (socket->is_open())
-        {
-            std::optional<std::pair<int, int>> pos = msg.MSGToServer();
-            
-            if (pos)
-            {
-                asio::write(*socket, asio::buffer(&pos, sizeof(pos)));
-            }
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-        }
-    }
-    catch (const std::exception& e)
-    {
-        std::cerr << "Exception in SendToClient: " << e.what() << "\n";
-    }
-    catch (...)
-    {
-        std::cerr << "Unknown exception in SendToClient\n";
+        WriteMessage();
     }
 }
 
-
-void ChatServer::RemoveClient(std::shared_ptr<tcp::socket> socket) 
+void ChatSession::ReadMessage()
 {
-    std::lock_guard<std::mutex> lock(mtx);
-    auto it = client_names.find(socket);
-    if (it != client_names.end()) 
-    {
-        std::string username = it->second;
+    auto self = shared_from_this();
+    boost::asio::async_read_until(socket_, buffer_, '\n',
+        [this, self](boost::system::error_code ec, std::size_t length) 
+        {
+            if (!ec) 
+            {
+                std::istream is(&buffer_);
+                std::string msg;
+                std::getline(is, msg);
+                std::cout << "Received: " << msg << "\n";
 
-        std::cout << "Client (" << username << ") disconnected\n";
-        client_names.erase(it);
-    }
-    else 
+                Broadcast(msg + "\n");
+
+                ReadMessage(); // read next message
+            }
+            else {
+                std::cerr << "Client disconnected\n";
+                if (server_) {
+                    server_->Leave(shared_from_this());
+                }
+            }
+        });
+}
+
+void ChatSession::WriteMessage()
+{
+    auto self = shared_from_this();
+    boost::asio::async_write(socket_,
+        boost::asio::buffer(write_msgs_.front()),
+        [this, self](boost::system::error_code ec, std::size_t /*length*/) 
+        {
+            if (!ec) 
+            {
+                write_msgs_.pop_front();
+                if (!write_msgs_.empty()) 
+                {
+                    WriteMessage();
+                }
+            }
+            else 
+            {
+                std::cerr << "Write error\n";
+            }
+        });
+}
+
+void ChatSession::Broadcast(const std::string& msg)
+{
+    if (server_)
     {
-        std::cout << "Client disconnected\n";
+        server_->Broadcast(msg);
     }
-    clients.erase(std::remove(clients.begin(), clients.end(), socket), clients.end());
 }
