@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <deque>
 #include <unordered_set>
+#include <atomic>
 
 
 using boost::asio::ip::tcp;
@@ -16,6 +17,7 @@ class ChatServer
 {
 public:
     ChatServer(boost::asio::io_context& io_context, short port); 
+    bool Running();
     void Join(std::shared_ptr<ChatSession> session);
     void Leave(std::shared_ptr<ChatSession> session);
     void Broadcast(const std::string& msg);
@@ -24,6 +26,7 @@ private:
 private:
     tcp::acceptor acceptor_;
     std::unordered_set<std::shared_ptr<ChatSession>> sessions_;
+    std::atomic<bool> is_running{ true };
 };
 
 
@@ -41,6 +44,6 @@ private:
     tcp::socket socket_;
     std::string read_msg_;
     std::deque<std::string> write_msgs_;
-    ChatServer* server_; 
-    boost::asio::streambuf buffer_;
+    ChatServer* server_;
+    boost::asio::streambuf buffer_; 
 };

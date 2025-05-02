@@ -8,7 +8,7 @@ class App
 {
 public:
 	App();
-	void Run(); 
+	void Go(); 
 	void ProcessReceivedMessage();
 	void UpdatePos(const std::string& command);
 private:

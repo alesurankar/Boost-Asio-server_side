@@ -3,11 +3,12 @@
 #include "App.h"
 #include <memory>
 #include <chrono>
-
+#include <iostream>
 
 
 int main() 
 {
+    std::cout << "Main:\n";
     App app;
 
     std::string command;
@@ -22,10 +23,9 @@ int main()
                 io.run();
             });
 
-        while (true)
+        while (global_server->Running())
         {
-            app.Run();
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            app.Go();
         }
         networking.join();
     }
