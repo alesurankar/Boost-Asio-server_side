@@ -2,39 +2,37 @@
 #include <iostream>
 
 
-ChatServer::ChatServer(boost::asio::io_context& io_context, short port)
+ChatServer::ChatServer(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> handler)
     :
-    acceptor_(io_context, tcp::endpoint(tcp::v4(), port))
+    acceptor_(io_context, tcp::endpoint(tcp::v4(), port)),
+    msgHandler(handler)
 {
     Accept();
 }
 
+
 bool ChatServer::Running()
 {
-    std::cout << "ChatServer::Running:\n";
+    //std::cout << "ChatServer::Running:\n";
     return is_running;
 }
+
 
 void ChatServer::Join(std::shared_ptr<ChatSession> session)
 {
     std::cout << "ChatServer::Join:\n";
     sessions_.insert(session);
+    std::cout << "--------------\n";
 }
+
 
 void ChatServer::Leave(std::shared_ptr<ChatSession> session)
 {
     std::cout << "ChatServer::Leave:\n";
     sessions_.erase(session);
+    std::cout << "--------------\n";
 }
 
-void ChatServer::Broadcast(const std::string& msg)
-{
-    std::cout << "ChatServer::Broadcast:\n";
-    for (auto& s : sessions_) 
-    {
-        s->Deliver(msg);
-    }
-}
 
 void ChatServer::Accept()
 {
@@ -43,37 +41,34 @@ void ChatServer::Accept()
         {
         if (!ec) 
         {
-            auto session = std::make_shared<ChatSession>(std::move(socket), this);
+            auto session = std::make_shared<ChatSession>(std::move(socket), shared_from_this(), msgHandler);
             Join(session);
             session->Start();
         }
         Accept();
         });
+    std::cout << "--------------\n";
 }
 
 
 
-ChatSession::ChatSession(tcp::socket socket, ChatServer* server)
+ChatSession::ChatSession(tcp::socket socket, std::weak_ptr<ChatServer> server, std::shared_ptr<MessageHandler> handler)
     :
-    socket_(std::move(socket)), server_(server)
+    socket_(std::move(socket)), 
+    server_(server),
+    msgHandler(handler),
+    message_timer(socket_.get_executor())
 {}
+
 
 void ChatSession::Start()
 {
     std::cout << "ChatSession::Start:\n";
     ReadMessage();
+    CheckAndSendMessage();
+    std::cout << "--------------\n";
 }
 
-void ChatSession::Deliver(const std::string& msg)
-{
-    std::cout << "ChatSession::Deliver:\n";
-    bool write_in_progress = !write_msgs_.empty();
-    write_msgs_.push_back(msg);
-    if (!write_in_progress) 
-    {
-        WriteMessage();
-    }
-}
 
 void ChatSession::ReadMessage()
 {
@@ -87,51 +82,60 @@ void ChatSession::ReadMessage()
                 std::istream is(&buffer_);
                 std::string msg;
                 std::getline(is, msg);
+
+                //buffer_.consume(length);
+
                 std::cout << "Received: " << msg << "\n";
 
-                Broadcast(msg + "\n");
+                msgHandler->ServerToMSG(msg);
 
                 ReadMessage();
             }
             else 
             {
                 std::cerr << "Client disconnected\n";
-                if (server_) 
+                if (auto server = server_.lock())
                 {
-                    server_->Leave(shared_from_this());
+                    server->Leave(shared_from_this());
                 }
             }
         });
+    std::cout << "--------------\n";
 }
 
-void ChatSession::WriteMessage()
+
+void ChatSession::CheckAndSendMessage()
 {
-    std::cout << "ChatSession::WriteMessage:\n";
+    //std::cout << "ChatSession::WriteMessage:\n";
     auto self = shared_from_this();
-    boost::asio::async_write(socket_,
-        boost::asio::buffer(write_msgs_.front()),
-        [this, self](boost::system::error_code ec, std::size_t /*length*/) 
-        {
-            if (!ec) 
-            {
-                write_msgs_.pop_front();
-                if (!write_msgs_.empty()) 
-                {
-                    WriteMessage();
-                }
-            }
-            else 
-            {
-                std::cerr << "Write error\n";
-            }
-        });
-}
 
-void ChatSession::Broadcast(const std::string& msg)
-{
-    std::cout << "ChatSession::Broadcast:\n";
-    if (server_)
+    auto messageOpt = msgHandler->MSGToServer();
+    if (messageOpt.has_value())
     {
-        server_->Broadcast(msg);
+        auto [x, y] = messageOpt.value();
+        std::string message = std::to_string(x) + "," + std::to_string(y);
+
+        boost::asio::async_write(socket_, boost::asio::buffer(message + "\n"),
+            [this, self](boost::system::error_code ec, std::size_t)
+            {
+                if (ec)
+                {
+                    std::cerr << "Send error: " << ec.message() << "\n";
+                    return;
+                }
+                CheckAndSendMessage();
+            });
     }
+    else
+    {
+        message_timer.expires_after(std::chrono::milliseconds(100));
+        message_timer.async_wait([this, self](boost::system::error_code ec)
+            {
+                if (!ec)
+                {
+                    CheckAndSendMessage();
+                }
+            });
+    }
+    //std::cout << "--------------\n";
 }

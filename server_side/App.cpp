@@ -7,25 +7,19 @@ App::App()
 
 void App::Go()
 {
-    std::cout << "App::Run:\n";
+    //std::cout << "App::Run:\n";
     ProcessReceivedMessage();
     std::this_thread::sleep_for(std::chrono::seconds(5));
 }
 
 void App::ProcessReceivedMessage()
 {
-    std::cout << "App::ProcessReceivedMessage:\n";
-    std::lock_guard<std::mutex> lock(mtx);
+    //std::cout << "App::ProcessReceivedMessage:\n";
+    std::string message = msgHandler->MSGToApp();
 
-    if (!command_queue.empty())
+    if (!message.empty())
     {
-        std::string command = command_queue.front();
-        command_queue.pop();
-
-        if (!command.empty())
-        {
-            UpdatePos(command);
-        }
+        UpdatePos(message);
     }
 }
 
@@ -36,17 +30,18 @@ void App::UpdatePos(const std::string& command)
     {
         y--;
     }
-    if (command == "move_down")
+    else if (command == "move_down")
     {
         y++;
     }
-    if (command == "move_left")
+    else if (command == "move_left")
     {
         x--;
     }
-    if (command == "move_right")
+    else if (command == "move_right")
     {
         x++;
     }
-    msg.AppToMSG(x,y);
+    msgHandler->AppToMSG(x,y);
+    std::cout << "--------------\n";
 }

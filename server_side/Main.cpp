@@ -9,6 +9,7 @@
 int main() 
 {
     std::cout << "Main:\n";
+    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
     App app;
 
     std::string command;
@@ -16,7 +17,7 @@ int main()
 
     try {
         boost::asio::io_context io;
-        global_server = std::make_shared<ChatServer>(io, 1234);
+        global_server = std::make_shared<ChatServer>(io, 1234, msgHandler);
 
         std::thread networking([&]()
             {

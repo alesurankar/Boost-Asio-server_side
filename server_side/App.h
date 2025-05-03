@@ -12,7 +12,8 @@ public:
 	void ProcessReceivedMessage();
 	void UpdatePos(const std::string& command);
 private:
-	MessageHandler msg;
+
+	std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
 	int x = 0;
 	int y = 0;
 	std::queue<std::string> command_queue;
