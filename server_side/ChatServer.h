@@ -1,4 +1,5 @@
 #pragma once
+#include "MessageHandler.h"
 #include <boost/asio.hpp>
 #include <boost/beast.hpp>
 #include <boost/json.hpp>
@@ -18,10 +19,9 @@ public:
 private:
     void AcceptConnections();
     void HandleClient(std::shared_ptr<tcp::socket> socket, int client_id);
-    void Broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender);
-    bool SendSignalToFastAPI(const std::string& username);
     void RemoveClient(std::shared_ptr<tcp::socket> socket);
 private:
+    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
     boost::asio::io_context& io_;
     tcp::acceptor acceptor_;
     std::atomic<int> client_counter_;
