@@ -12,10 +12,10 @@ void App::Go()
     std::this_thread::sleep_for(std::chrono::seconds(5));
 }
 
-void App::ProcessReceivedMessage()
+void App::ProcessReceivedMessage() //6. AppServer(updateParameters)
 {
-    //std::cout << "App::ProcessReceivedMessage:\n";
-    std::string message = msgHandler->MSGToApp();
+    std::cout << "App::ProcessReceivedMessage: //6. AppServer(updateParameters)\n";
+    std::string message = msgHandler->MSGToApp(); //6. AppServer(updateParameters)
 
     if (!message.empty())
     {
@@ -23,9 +23,9 @@ void App::ProcessReceivedMessage()
     }
 }
 
-void App::UpdatePos(const std::string& command)
+void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
 {
-    std::cout << "App::UpdatePos:\n";
+    std::cout << "App::UpdatePos: " << command << "//6. AppServer(updateParameters)\n";
     if (command == "move_up")
     {
         y--;
@@ -42,6 +42,6 @@ void App::UpdatePos(const std::string& command)
     {
         x++;
     }
-    msgHandler->AppToMSG(x,y);
+    msgHandler->AppToMSG(x,y); //7. MSGServer(middleman)
     std::cout << "--------------\n";
 }

@@ -37,7 +37,7 @@ public:
     void Start();
 private:
     void ReadMessage();
-    void CheckAndSendMessage();
+    void CheckAndSendMessage(std::pair<int, int> pos);
 private:
     std::shared_ptr<MessageHandler> msgHandler;
     tcp::socket socket_;
