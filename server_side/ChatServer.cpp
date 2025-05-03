@@ -3,10 +3,11 @@
 namespace beast = boost::beast;
 namespace http = beast::http;
 
-ChatServer::ChatServer(boost::asio::io_context& io, const std::string& address, unsigned short port)
+ChatServer::ChatServer(boost::asio::io_context& io, const std::string& address, unsigned short port, std::shared_ptr<MessageHandler> handler)
     : 
     io_(io),
-    acceptor_(io, tcp::endpoint(boost::asio::ip::make_address(address), port))
+    acceptor_(io, tcp::endpoint(boost::asio::ip::make_address(address), port)),
+    msgHandler(handler)
 {}
 
 

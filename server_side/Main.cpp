@@ -1,69 +1,38 @@
+#pragma once
 #include "ChatServer.h"
-#include "App.h"
+#include <iostream>
+#include <memory>
+#include <thread>
+
 
 int main() 
 {
-    App app;
+    std::cout << "Main:\n";
+    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
 
-    boost::asio::io_context io;
-    ChatServer server(io, "127.0.0.1", 1234);
-    server.Start();
-    
-    std::thread networking([&]()
-    {
-       io.run();
-    });
-    
-    while (true)
-    {
-        app.Go();
+    std::shared_ptr<ChatServer> global_server;
+
+    try {
+        boost::asio::io_context io;
+        global_server = std::make_shared<ChatServer>(io, "127.0.0.1", 1234, msgHandler);
+        global_server->Start();
+
+        std::thread networking([&]()
+            {
+                io.run();
+            });
+        networking.join();
     }
-    networking.join();
+    catch (const std::exception& e)
+    {
+        std::cerr << "Exception: " << e.what() << "\n";
+    }
+
 
     return 0;
 }
 
 
-//#pragma once
-//#include "ChatServer.h"
-//#include "App.h"
-//#include <memory>
-//#include <chrono>
-//#include <iostream>
-//
-//
-//int main()
-//{
-//    std::cout << "Main:\n";
-//    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
-//    App app;
-//
-//    std::string command;
-//    std::shared_ptr<ChatServer> global_server;
-//
-//    try {
-//        boost::asio::io_context io;
-//        global_server = std::make_shared<ChatServer>(io, 1234, msgHandler);
-//
-//        std::thread networking([&]()
-//            {
-//                io.run();
-//            });
-//
-//        while (global_server->Running())
-//        {
-//            app.Go();
-//        }
-//        networking.join();
-//    }
-//    catch (const std::exception& e)
-//    {
-//        std::cerr << "Exception: " << e.what() << "\n";
-//    }
-//
-//    return 0;
-//}
-//
 ////Client -> Server -> MSG -> App -> MSG -> Server -> Client
 //
 ////1. AppClient(input) -> 

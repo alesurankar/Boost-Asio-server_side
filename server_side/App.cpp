@@ -2,26 +2,8 @@
 #include <iostream>
 
 App::App()
-{
-}
+{}
 
-void App::Go()
-{
-    //std::cout << "App::Run:\n";
-    ProcessReceivedMessage();
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-}
-
-void App::ProcessReceivedMessage() //6. AppServer(updateParameters)
-{
-    std::string message = msgHandler->MSGToApp(); //6. AppServer(updateParameters)
-    
-    if (!message.empty())
-    {
-        std::cout << "App::ProcessReceivedMessage: //6. AppServer(updateParameters)\n";
-        UpdatePos(message);
-    }
-}
 
 void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
 {
@@ -42,6 +24,11 @@ void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
     {
         x++;
     }
-    msgHandler->AppToMSG(x, y); //7. MSGServer(middleman)
     std::cout << "--------------\n";
+}
+
+std::pair<int, int> App::ReturnPos()
+{
+    std::cout << "App::ReturnPos: " << "x = " << x << ", y = " << y << ", //7. MSGServer(middleman)\n";
+    return std::pair<int, int>(x, y); //7. MSGServer(middleman)
 }
