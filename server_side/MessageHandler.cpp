@@ -48,7 +48,6 @@ void MessageHandler::AppToMSG() //7. MSGServer(middleman)
 		std::cout << "x = " << x << ", y = " << y << "\n";
 		app_position.push(std::make_pair(x, y));
 	}
-	MSGToServer();
 	std::cout << "Step 8--------------\n";
 }
 
