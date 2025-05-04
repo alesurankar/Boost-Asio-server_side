@@ -8,19 +8,19 @@ App::App()
 void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
 {
     std::cout << "App::UpdatePos: " << command << "//6. AppServer(updateParameters)\n";
-    if (command == "move_up")
+    if (command == "UP")
     {
         y--;
     }
-    else if (command == "move_down")
+    else if (command == "DWN")
     {
         y++;
     }
-    else if (command == "move_left")
+    else if (command == "LFT")
     {
         x--;
     }
-    else if (command == "move_right")
+    else if (command == "RGT")
     {
         x++;
     }

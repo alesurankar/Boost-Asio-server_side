@@ -54,7 +54,8 @@ void ChatServer::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id
             {
                 message.pop_back();
             }
-            msgHandler->ServerToMSG(message);
+            msgHandler->ServerToMSG(message); 
+            Broadcast(msg, socket);
         }
     }
     catch (const std::exception& e) 
@@ -67,6 +68,17 @@ void ChatServer::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id
     }
 
     RemoveClient(socket);
+}
+
+
+void ChatServer::Broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender) {
+    std::lock_guard<std::mutex> lock(clients_mutex_);
+    for (auto& client : clients_) {
+        if (client != sender) {
+            boost::system::error_code ec;
+            boost::asio::write(*client, boost::asio::buffer(msg), ec);
+        }
+    }
 }
 
 

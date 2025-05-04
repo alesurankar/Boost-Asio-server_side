@@ -20,6 +20,7 @@ public:
 private:
     void AcceptConnections();
     void HandleClient(std::shared_ptr<tcp::socket> socket, int client_id);
+    void Broadcast(const std::string& msg, std::shared_ptr<tcp::socket> sender);
     void RemoveClient(std::shared_ptr<tcp::socket> socket);
 private:
     std::shared_ptr<MessageHandler> msgHandler;
