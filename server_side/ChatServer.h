@@ -18,14 +18,14 @@ class ChatServer : public std::enable_shared_from_this<ChatServer>
 public:
     ChatServer(boost::asio::io_context& io_context, short port);
 //    bool Running();
-//    void Join(std::shared_ptr<ChatSession> session);
-//    void Leave(std::shared_ptr<ChatSession> session);
+    void Join(std::shared_ptr<ChatSession> client_session);
+    void Leave(std::shared_ptr<ChatSession> client_session);
 private:
     void Accept();
 private:
-    tcp::acceptor acceptor;
+    tcp::acceptor server_acceptor;
+    std::unordered_set<std::shared_ptr<ChatSession>> active_sessions;
 //    std::shared_ptr<MessageHandler> msgHandler;
-//    std::unordered_set<std::shared_ptr<ChatSession>> sessions_;
 //    std::atomic<bool> is_running{ true };
 };
 
@@ -34,15 +34,15 @@ class ChatSession : public std::enable_shared_from_this<ChatSession>
 {
 public:
     ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server_in);
-//    void Start();
+    void Start();
 private:
-//    void ReadMessage();
+    void ReadMessage();
 //    void CheckAndSendMessage();
 private:
-    tcp::socket socket;
-    std::weak_ptr<ChatServer> server;
-//    std::shared_ptr<MessageHandler> msgHandler;
+    tcp::socket client_socket;
+    std::weak_ptr<ChatServer> chat_server;
+    boost::asio::streambuf input_buffer;
+//    std::shared_ptr<MessageHandler> pMsgHandler;
 //    std::string read_msg_;
 //    std::deque<std::string> write_msgs_;
-//    boost::asio::streambuf buffer_;
 };
