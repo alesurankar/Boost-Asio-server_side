@@ -2,46 +2,34 @@
 #include <iostream>
 
 App::App()
-{
-}
+{}
 
-void App::Go()
-{
-    //std::cout << "App::Run:\n";
-    ProcessReceivedMessage();
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-}
-
-void App::ProcessReceivedMessage() //6. AppServer(updateParameters)
-{
-    std::cout << "App::ProcessReceivedMessage: //6. AppServer(updateParameters)\n";
-    std::string message = msgHandler->MSGToApp(); //6. AppServer(updateParameters)
-
-    if (!message.empty())
-    {
-        UpdatePos(message);
-    }
-}
 
 void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
 {
     std::cout << "App::UpdatePos: " << command << "//6. AppServer(updateParameters)\n";
-    if (command == "move_up")
+    if (command == "UP")
     {
         y--;
     }
-    else if (command == "move_down")
+    else if (command == "DWN")
     {
         y++;
     }
-    else if (command == "move_left")
+    else if (command == "LFT")
     {
         x--;
     }
-    else if (command == "move_right")
+    else if (command == "RGT")
     {
         x++;
     }
-    msgHandler->AppToMSG(x,y); //7. MSGServer(middleman)
     std::cout << "--------------\n";
 }
+
+std::pair<int, int> App::ReturnPos()
+{
+    std::cout << "App::ReturnPos: " << "x = " << x << ", y = " << y << ", //7. MSGServer(middleman)\n";
+    return std::pair<int, int>(x, y); //7. MSGServer(middleman)
+}
+

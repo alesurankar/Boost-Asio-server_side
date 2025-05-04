@@ -13,7 +13,6 @@ ChatServer::ChatServer(boost::asio::io_context& io_context, short port, std::sha
 
 bool ChatServer::Running()
 {
-    //std::cout << "ChatServer::Running:\n";
     return is_running;
 }
 
@@ -45,6 +44,10 @@ void ChatServer::Accept()
                 Join(session);
                 session->Start();
             }
+            else
+            {
+                std::cerr << "Accept failed: " << ec.message() << "\n";
+            }
             Accept();
         });
     std::cout << "--------------\n";
@@ -74,7 +77,7 @@ void ChatSession::ReadMessage() //4. Server(TCP)
 {
     std::cout << "ChatSession::ReadMessage: //4. Server(TCP)\n";
     auto self = shared_from_this();
-    boost::asio::async_read_until(socket_, buffer_, '\n',
+    boost::asio::async_read_until(socket_, buffer_, '\n',    //4. Server(TCP)
         [this, self](boost::system::error_code ec, std::size_t length) 
         {
             if (!ec) 
@@ -83,11 +86,12 @@ void ChatSession::ReadMessage() //4. Server(TCP)
                 std::string msg;
                 std::getline(is, msg);
 
-                //buffer_.consume(length);
-
                 std::cout << "Received: " << msg << "\n";
 
-                msgHandler->ServerToMSG(msg); //5. MSGServer(middleman)
+                if (!msg.empty())
+                {
+                    msgHandler->ServerToMSG(msg); //5. MSGServer(middleman)
+                }
             }
             else 
             {
@@ -103,12 +107,18 @@ void ChatSession::ReadMessage() //4. Server(TCP)
 }
 
 
-void ChatSession::CheckAndSendMessage(std::pair<int, int> pos) //8. Server(TCP)
+void ChatSession::CheckAndSendMessage() //8. Server(TCP)
 {
     std::cout << "ChatSession::WriteMessage: //8. Server(TCP)\n";
     auto self = shared_from_this();
-    msgHandler->MSGToServer();
-    std::string message = std::to_string(pos.first) + "," + std::to_string(pos.second);
+    auto optPos = msgHandler->MSGToServer(); 
+    std::string message;
+    if (optPos.has_value())
+    {
+        std::pair<int, int> pos = optPos.value();
+        message = std::to_string(pos.first) + "," + std::to_string(pos.second);
+    }
+
 
     boost::asio::async_write(socket_, boost::asio::buffer(message + "\n"),
         [this, self](boost::system::error_code ec, std::size_t)
@@ -118,5 +128,5 @@ void ChatSession::CheckAndSendMessage(std::pair<int, int> pos) //8. Server(TCP)
                 std::cerr << "Send error: " << ec.message() << "\n";
             }
         });
-    //std::cout << "--------------\n";
+    std::cout << "--------------\n";
 }
