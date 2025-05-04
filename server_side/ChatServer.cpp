@@ -2,9 +2,10 @@
 #include <iostream>
 
 
-ChatServer::ChatServer(boost::asio::io_context& io_context, short port)
+ChatServer::ChatServer(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in)
     :
-    server_acceptor(io_context, tcp::endpoint(tcp::v4(), port))
+    server_acceptor(io_context, tcp::endpoint(tcp::v4(), port)),
+    msgHandler(msgHandler_in)
 {
     Accept();
 }
@@ -20,7 +21,7 @@ void ChatServer::Join(std::shared_ptr<ChatSession> client_session)
 {
     std::cout << "ChatServer::Join: " << client_session << "\n";
     active_sessions.insert(client_session);
-    std::cout << "--------------\n";
+    std::cout << "--------------\n\n";
 }
 
 
@@ -28,7 +29,7 @@ void ChatServer::Leave(std::shared_ptr<ChatSession> client_session)
 {
     std::cout << "ChatServer::Leave: " << client_session << "\n";
     active_sessions.erase(client_session);
-    std::cout << "--------------\n";
+    std::cout << "--------------\n\n";
 }
 
 
@@ -39,7 +40,7 @@ void ChatServer::Accept()
         {
             if (!ec)
             {
-                auto session = std::make_shared<ChatSession>(std::move(socket), shared_from_this());
+                auto session = std::make_shared<ChatSession>(std::move(socket), shared_from_this(), msgHandler);
                 Join(session);
                 session->Start();
             }
@@ -49,15 +50,16 @@ void ChatServer::Accept()
             }
             Accept();
         });
-    std::cout << "--------------\n";
+    std::cout << "--------------\n\n";
 }
 
 
 
-ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server_in)
+ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server_in, std::shared_ptr<MessageHandler> msgHandler_in)
     :
     client_socket(std::move(socket_in)),
-    chat_server(server_in)
+    chat_server(server_in),
+    msgHandler(msgHandler_in)
 {}
 
 
@@ -72,7 +74,6 @@ void ChatSession::Start()
 
 void ChatSession::ReadMessage() //4. Server(TCP)
 {
-    std::cout << "ChatSession::ReadMessage: //4. Server(TCP)\n";
     auto self = shared_from_this();
     boost::asio::async_read_until(client_socket, input_buffer, '\n',    //4. Server(TCP)
         [this, self](boost::system::error_code ec, std::size_t length) 
@@ -83,12 +84,12 @@ void ChatSession::ReadMessage() //4. Server(TCP)
                 std::string msg;
                 std::getline(is, msg);
 
-                std::cout << "Received: " << msg << "\n";
+                std::cout << "Step 4, ChatSession::ReadMessage::Received: " << msg << "\n";
 
-                //if (!msg.empty())
-                //{
-                //    pMsgHandler->ServerToMSG(msg); //5. MSGServer(middleman)
-                //}
+                if (!msg.empty())
+                {
+                    msgHandler->ServerToMSG(msg); //5. MSGServer(middleman)
+                }
             }
             else 
             {
@@ -102,7 +103,7 @@ void ChatSession::ReadMessage() //4. Server(TCP)
             }
             ReadMessage();
         });
-    std::cout << "--------------\n";
+    std::cout << "Step 4--------------\n";
 }
 
 

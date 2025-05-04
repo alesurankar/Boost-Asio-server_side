@@ -1,38 +1,42 @@
-//#include "MessageHandler.h"
-//#include <iostream>
-//
-//MessageHandler::MessageHandler()
-//{}
-//
-//void MessageHandler::ServerToMSG(const std::string& message)  //5. MSGServer(middleman)
-//{
-//	std::cout << "MessageHandler::ServerToMSG: " << message << ", //5. MSGServer(middleman)\n";
-//	{
-//		std::lock_guard<std::mutex> lock(mtx1);
-//		{
-//			app_messages.push(message);
-//		}
-//		MSGToApp();
-//	}
-//	std::cout << "--------------\n";
-//}
-//
-//void MessageHandler::MSGToApp()  //6. AppServer(updateParameters)
-//{
-//	std::cout << "MessageHandler::MSGToApp::Queue size : " << app_messages.size() << ", //6. AppServer(updateParameters)\n";
-//	{
-//		std::lock_guard<std::mutex> lock(mtx2);
-//		if (!app_messages.empty())
-//		{
-//			std::string message = app_messages.front();
-//			app.UpdatePos(message);
-//			app_messages.pop();
-//			std::cout << "Popped message: " << message << "\n";
-//		}
-//	}
-//	AppToMSG();
-//}
-//
+#include "MessageHandler.h"
+#include <iostream>
+
+
+MessageHandler::MessageHandler()
+{}
+
+
+void MessageHandler::ServerToMSG(const std::string& message)  //5. MSGServer(middleman)
+{
+	std::cout << "Step 5, MessageHandler::ServerToMSG: " << message << "\n";
+	{
+		std::lock_guard<std::mutex> lock(mtx1);
+		app_messages.push(message);
+		std::cout << "Pushed message: " << message << "\n";
+	}
+	MSGToApp();
+	std::cout << "Step 5--------------\n";
+}
+
+
+void MessageHandler::MSGToApp()  //6. AppServer(updateParameters)
+{
+	std::cout << "MessageHandler::MSGToApp::Queue size : " << app_messages.size() << ", Step 6. AppServer(updateParameters)\n";
+	{
+		//std::lock_guard<std::mutex> lock(mtx2);
+		//if (!app_messages.empty())
+		//{
+		//	std::string message = app_messages.front();
+		//	app.UpdatePos(message);
+		//	app_messages.pop();
+		//	std::cout << "Popped message: " << message << "\n";
+		//}
+	}
+	//AppToMSG();
+	std::cout << "Step 6--------------\n";
+}
+
+
 //void MessageHandler::AppToMSG() //7. MSGServer(middleman)
 //{
 //	std::cout << "MessageHandler::AppToMSG:  //7. MSGServer(middleman)\n";

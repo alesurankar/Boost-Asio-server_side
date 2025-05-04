@@ -8,17 +8,17 @@
 class MessageHandler
 {
 public:
-//	MessageHandler();
-//	void ServerToMSG(const std::string& message);
-//	void MSGToApp();
+	MessageHandler();
+	void ServerToMSG(const std::string& message);
+	void MSGToApp();
 //	void AppToMSG();
 //	std::optional<std::pair<int, int>> MSGToServer();
 private:
-//	App app;
-//	std::queue<std::string> app_messages;
+	std::mutex mtx1;
+	std::mutex mtx2;
+	std::queue<std::string> app_messages;
+	App app;
 //	std::queue<std::string> client_messages;
-//	std::mutex mtx1;
-//	std::mutex mtx2;
 //	std::mutex mtx3;
 //	std::mutex mtx4;
 //	std::queue<std::pair<int, int>> app_position;
