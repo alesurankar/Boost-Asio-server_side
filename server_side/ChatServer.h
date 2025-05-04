@@ -37,12 +37,14 @@ public:
     void Start();
 private:
     void ReadMessage();
-//    void CheckAndSendMessage();
+    void CheckAndSend();
 private:
     tcp::socket client_socket;
     std::weak_ptr<ChatServer> chat_server;
     boost::asio::streambuf input_buffer;
     std::shared_ptr<MessageHandler> msgHandler;
+    std::string msg;
+    boost::asio::steady_timer timer;
 //    std::string read_msg_;
 //    std::deque<std::string> write_msgs_;
 };

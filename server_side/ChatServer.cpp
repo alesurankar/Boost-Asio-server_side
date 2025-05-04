@@ -59,7 +59,8 @@ ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server
     :
     client_socket(std::move(socket_in)),
     chat_server(server_in),
-    msgHandler(msgHandler_in)
+    msgHandler(msgHandler_in),
+    timer(socket_in.get_executor())
 {}
 
 
@@ -67,7 +68,7 @@ void ChatSession::Start()
 {
     std::cout << "ChatSession::Start:\n";
     ReadMessage();
-    //CheckAndSendMessage();
+    CheckAndSend();
     std::cout << "--------------\n";
 }
 
@@ -107,26 +108,40 @@ void ChatSession::ReadMessage() //4. Server(TCP)
 }
 
 
-//void ChatSession::CheckAndSendMessage() //8. Server(TCP)
-//{
-//    std::cout << "ChatSession::WriteMessage: //8. Server(TCP)\n";
-//    auto self = shared_from_this();
-//    auto optPos = msgHandler->MSGToServer(); 
-//    std::string message;
-//    if (optPos.has_value())
-//    {
-//        std::pair<int, int> pos = optPos.value();
-//        message = std::to_string(pos.first) + "," + std::to_string(pos.second);
-//    }
-//
-//
-//    boost::asio::async_write(socket_, boost::asio::buffer(message + "\n"),
-//        [this, self](boost::system::error_code ec, std::size_t)
-//        {
-//            if (ec)
-//            {
-//                std::cerr << "Send error: " << ec.message() << "\n";
-//            }
-//        });
-//    std::cout << "--------------\n";
-//}
+void ChatSession::CheckAndSend() //11. Server(TCP)
+{
+    //std::cout << "Step 11, ChatSession::WriteMessage: \n";
+    auto self = shared_from_this(); 
+    msg = msgHandler->MSGToServer();
+    if (!msg.empty())
+    {
+        boost::asio::async_write(client_socket, boost::asio::buffer(msg),
+            [this, self](const boost::system::error_code& ec, std::size_t)
+            {
+                if (!ec)
+                {
+                    std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
+                }
+                else
+                {
+                    std::cerr << "Send error: " << ec.message() << "\n";
+                    return;
+                }
+                boost::asio::post(client_socket.get_executor(), [this, self]() {
+                    CheckAndSend();
+                    });
+                std::cout << "Step 11--------------\n";
+            });
+    }
+    else
+    {
+        timer.expires_after(std::chrono::milliseconds(100));
+        timer.async_wait([this, self](boost::system::error_code ec)
+            {
+                if (!ec)
+                {
+                    CheckAndSend();
+                }
+            });
+    }
+}

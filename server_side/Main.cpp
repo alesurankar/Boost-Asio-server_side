@@ -7,8 +7,8 @@
 
 int main()
 {
-    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
     std::cout << "Main:\n";
+    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
     std::shared_ptr<ChatServer> global_server;
 
     try 

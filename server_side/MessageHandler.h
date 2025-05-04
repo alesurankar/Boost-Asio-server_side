@@ -11,16 +11,12 @@ public:
 	MessageHandler();
 	void ServerToMSG(const std::string& message);
 	void MSGToApp();
-//	void AppToMSG();
-//	std::optional<std::pair<int, int>> MSGToServer();
+	void AppToMSG();
+	std::string MSGToServer();
 private:
-	std::mutex mtx1;
-	std::mutex mtx2;
+	std::mutex mtx;
 	std::queue<std::string> app_messages;
 	App app;
-//	std::queue<std::string> client_messages;
-//	std::mutex mtx3;
-//	std::mutex mtx4;
-//	std::queue<std::pair<int, int>> app_position;
-//
+	std::queue<std::pair<int, int>> app_position;
+	std::string msg = "";
 };
