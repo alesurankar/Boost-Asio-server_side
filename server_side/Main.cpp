@@ -8,13 +8,12 @@
 int main()
 {
     std::cout << "Main:\n";
-    std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
-
     std::shared_ptr<ChatServer> global_server;
 
-    try {
+    try 
+    {
         boost::asio::io_context io;
-        global_server = std::make_shared<ChatServer>(io, 1234, msgHandler);
+        global_server = std::make_shared<ChatServer>(io, 1234);
 
         io.run();
     }
