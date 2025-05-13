@@ -1,13 +1,11 @@
 #include "App.h"
-#include <iostream>
 
 App::App()
 {}
 
 
-void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
+std::pair<int, int> App::UpdatePos(const std::string& command)
 {
-    std::cout << "Step 7, App::UpdatePos: " << command << "\n";
     if (command == "move_up")
     {
         y--;
@@ -24,14 +22,5 @@ void App::UpdatePos(const std::string& command) //6. AppServer(updateParameters)
     {
         x++;
     }
-    std::cout << "Step 7--------------\n";
+    return std::pair<int, int>(x, y);
 }
-
-
-std::pair<int, int> App::ReturnPos()
-{
-    std::cout << "Step 9, App::ReturnPos: " << "x = " << x << ", y = " << y << "\n";
-    std::cout << "Step 9--------------\n";
-    return std::pair<int, int>(x, y); //7. MSGServer(middleman)
-}
-
