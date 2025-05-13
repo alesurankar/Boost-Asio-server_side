@@ -14,7 +14,8 @@ public:
 	void AppToMSG();
 	std::string MSGToServer();
 private:
-	std::mutex mtx;
+	std::mutex msg_mtx;
+	std::mutex pos_mtx;
 	std::queue<std::string> app_messages;
 	App app;
 	std::queue<std::pair<int, int>> app_position;

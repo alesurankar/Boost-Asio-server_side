@@ -10,7 +10,7 @@ void MessageHandler::ServerToMSG(const std::string& message)  //5. MSGServer(mid
 {
 	std::cout << "Step 5, MessageHandler::ServerToMSG: ";
 	{
-		std::lock_guard<std::mutex> lock(mtx);
+		std::lock_guard<std::mutex> lock(msg_mtx);
 		app_messages.push(message);
 		std::cout << "Pushed message: " << message << "\n";
 	}
@@ -23,7 +23,7 @@ void MessageHandler::MSGToApp()  //6. AppServer(updateParameters)
 {
 	std::cout << "Step 6, MessageHandler::MSGToApp::Queue size : \n";
 	{
-	    std::lock_guard<std::mutex> lock(mtx);
+	    std::lock_guard<std::mutex> lock(msg_mtx);
 	    if (!app_messages.empty())
 	    {
 	    	std::string message = app_messages.front();
@@ -41,7 +41,7 @@ void MessageHandler::AppToMSG() //7. MSGServer(middleman)
 {
 	std::cout << "Step 8, MessageHandler::AppToMSG: \n";
 	{
-		std::lock_guard<std::mutex> lock(mtx);
+		std::lock_guard<std::mutex> lock(pos_mtx);
 		std::pair<int, int> pos = app.ReturnPos();
 		int x = pos.first;
 		int y = pos.second;
@@ -54,7 +54,7 @@ void MessageHandler::AppToMSG() //7. MSGServer(middleman)
 std::string MessageHandler::MSGToServer()
 {
 	{
-		std::lock_guard<std::mutex> lock(mtx);
+		std::lock_guard<std::mutex> lock(pos_mtx);
 		if (!app_position.empty())
 		{
 			std::cout << "Step 10, MessageHandler::MSGToServer: \n";
