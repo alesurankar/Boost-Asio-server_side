@@ -23,6 +23,5 @@ int main()
         std::cerr << "Exception: " << e.what() << "\n";
     }
 
-
     return 0;
 }

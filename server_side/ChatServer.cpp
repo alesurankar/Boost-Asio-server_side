@@ -27,7 +27,10 @@ void ChatServer::Join(std::shared_ptr<ChatSession> client_session)
 
 void ChatServer::Leave(std::shared_ptr<ChatSession> client_session)
 {
-    std::cout << "ChatServer::Leave: " << client_session << "\n";
+    std::cout << "ChatServer::Leave: " << client_session << "\n"; 
+    /*client_session.cancel();
+    client_session.shutdown(asio::ip::tcp::socket::shutdown_both);
+    client_session.close();*/
     active_sessions.erase(client_session);
     std::cout << "--------------\n\n";
 }
@@ -68,15 +71,19 @@ void ChatSession::Start()
 {
     std::cout << "ChatSession::Start:\n";
     ReadMessage();
-    CheckAndSend();
+    auto self = shared_from_this();
+    boost::asio::post(client_socket.get_executor(), [this, self]()
+        {
+            CheckAndSend();
+        });
     std::cout << "--------------\n";
 }
 
 
-void ChatSession::ReadMessage() //4. Server(TCP)
+void ChatSession::ReadMessage()
 {
     auto self = shared_from_this();
-    boost::asio::async_read_until(client_socket, input_buffer, '\n',    //4. Server(TCP)
+    boost::asio::async_read_until(client_socket, input_buffer, '\n',
         [this, self](boost::system::error_code ec, std::size_t length) 
         {
             if (!ec) 
@@ -89,7 +96,7 @@ void ChatSession::ReadMessage() //4. Server(TCP)
 
                 if (!msg.empty())
                 {
-                    msgHandler->ServerToMSG(msg); //5. MSGServer(middleman)
+                    msgHandler->ServerToMSG(msg);
                 }
             }
             else 
@@ -108,13 +115,17 @@ void ChatSession::ReadMessage() //4. Server(TCP)
 }
 
 
-void ChatSession::CheckAndSend() //11. Server(TCP)
+void ChatSession::CheckAndSend()
 {
-    //std::cout << "Step 11, ChatSession::WriteMessage: \n";
     auto self = shared_from_this(); 
     msg = msgHandler->MSGToServer();
     if (!msg.empty())
     {
+        if (!client_socket.is_open())
+        {
+            std::cerr << "Socket is not open. Cannot send.\n";
+            return;
+        }
         boost::asio::async_write(client_socket, boost::asio::buffer(msg),
             [this, self](const boost::system::error_code& ec, std::size_t)
             {
@@ -125,9 +136,15 @@ void ChatSession::CheckAndSend() //11. Server(TCP)
                 else
                 {
                     std::cerr << "Send error: " << ec.message() << "\n";
+                    if (auto server = chat_server.lock())
+                    {
+                        server->Leave(shared_from_this());
+                    }
+                    client_socket.close();
                     return;
                 }
-                boost::asio::post(client_socket.get_executor(), [this, self]() {
+                boost::asio::post(client_socket.get_executor(), [this, self]() 
+                    {
                     CheckAndSend();
                     });
                 std::cout << "Step 11--------------\n";
@@ -135,7 +152,7 @@ void ChatSession::CheckAndSend() //11. Server(TCP)
     }
     else
     {
-        timer.expires_after(std::chrono::milliseconds(100));
+        timer.expires_after(std::chrono::milliseconds(2));
         timer.async_wait([this, self](boost::system::error_code ec)
             {
                 if (!ec)
