@@ -17,10 +17,10 @@ public:
 	void UpdateLoop();
 	void Go();
 private:
-	//void TakeFromQueue();
+	void TakeFromQueue();
 	void PushToQueue();
-	//void GetMessage();
-	void UpdateParameters(const std::string& command);
+	void GetMessage();
+	void UpdateParameters(std::string command);
 	void SetMessage();
 private:
 	FrameTimer ft;

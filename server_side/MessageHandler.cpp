@@ -10,7 +10,7 @@ void MessageHandler::ServerToMSG(const std::string& message)
 {
 	std::lock_guard<std::mutex> lock(IN_mtx);
 	app_messages.push(message);
-	std::cout << "void MessageHandler::ServerToMSG(const std::string& message): " << message << " pushed to queue\n";
+	//std::cout << "void MessageHandler::ServerToMSG(const std::string& message): " << message << " pushed to queue\n";
 }
 
 

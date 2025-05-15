@@ -82,6 +82,9 @@ void ChatSession::Start()
 
 void ChatSession::ReadMessage()
 {
+    //float dt = ft.Mark();
+    //float dtMs = dt * 1000.0f;
+    //std::cout << "void ChatSession::ReadMessage(): Frame Time: " << dtMs << " ms\n";
     auto self = shared_from_this();
     boost::asio::async_read_until(client_socket, input_buffer, '\n',
         [this, self](boost::system::error_code ec, std::size_t length) 
@@ -92,7 +95,7 @@ void ChatSession::ReadMessage()
                 std::string msg;
                 std::getline(is, msg);
 
-                std::cout << "Step 4, ChatSession::ReadMessage::Received: " << msg << "\n";
+                //std::cout << "Step 4, ChatSession::ReadMessage::Received: " << msg << "\n";
 
                 if (!msg.empty())
                 {
@@ -111,15 +114,15 @@ void ChatSession::ReadMessage()
             }
             ReadMessage();
         });
-    std::cout << "Step 4--------------\n";
+    //std::cout << "Step 4--------------\n";
 }
 
 
 void ChatSession::CheckAndSend()
 {
-    float dt = ft.Mark();
-    float dtMs = dt * 1000.0f;
-    std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
+    //float dt = ft.Mark();
+    //float dtMs = dt * 1000.0f;
+    //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
     auto self = shared_from_this();
     timer.expires_after(std::chrono::milliseconds(8));
     timer.async_wait([this, self](boost::system::error_code ec)
@@ -137,7 +140,7 @@ void ChatSession::CheckAndSend()
                 {
                     if (!ec)
                     {
-                        std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
+                        //std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
                     }
                     else
                     {
@@ -155,5 +158,5 @@ void ChatSession::CheckAndSend()
                         });
                 });
         });
-    std::cout << "Step 11--------------\n";
+    //std::cout << "Step 11--------------\n";
 }
