@@ -30,8 +30,10 @@ private:
 	std::thread UpdateThread;
 	std::shared_ptr<MessageHandler> msgHandler;
 	std::atomic<bool>& running;
+	std::atomic<bool> nextFrame;
 	std::mutex(mtx_in);
 	std::mutex(mtx_out);
 	std::queue<std::string> msg_toUpdate;
 	std::queue<std::string> msg_isUpdated;
+	std::atomic<bool> noUpdate;
 };

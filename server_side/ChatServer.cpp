@@ -123,7 +123,11 @@ void ChatSession::CheckAndSend()
     {
         if (!client_socket.is_open())
         {
-            std::cerr << "Socket is not open. Cannot send.\n";
+            std::cerr << "Socket is not open. Discarding message: " << msg << "\n";
+            boost::asio::post(client_socket.get_executor(), [this, self]()
+                {
+                    CheckAndSend();
+                });
             return;
         }
         boost::asio::async_write(client_socket, boost::asio::buffer(msg),
