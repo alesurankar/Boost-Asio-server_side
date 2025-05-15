@@ -9,6 +9,14 @@ App::App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_
     UpdateThread = std::thread(&App::UpdateLoop, this);
 }
 
+App::~App()
+{
+    if (UpdateThread.joinable())
+    {
+        UpdateThread.join();
+    }
+}
+
 void App::Go()
 {
     //float dt = ft.Mark();

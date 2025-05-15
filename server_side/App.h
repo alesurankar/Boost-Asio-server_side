@@ -12,6 +12,7 @@ class App
 {
 public:
 	App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_in);
+	~App();
 	//std::pair<int, int> UpdatePos(const std::string& command);
 	void UpdateLoop();
 	void Go();
