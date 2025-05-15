@@ -1,5 +1,5 @@
 #pragma once
-#include "ChatServer.h"
+#include "TCP_Server.h"
 #include "App.h"
 #include <iostream>
 #include <memory>
@@ -9,13 +9,13 @@
 int main()
 {
     std::shared_ptr<MessageHandler> msgHandler = std::make_shared<MessageHandler>();
-    std::shared_ptr<ChatServer> global_server;
+    std::shared_ptr<TCP_Server> global_server;
 	std::atomic<bool> running{ true };
 
 	App theApp(running, msgHandler);
 
     boost::asio::io_context io;
-    global_server = std::make_shared<ChatServer>(io, 1234, msgHandler);
+    global_server = std::make_shared<TCP_Server>(io, 1234, msgHandler);
     
 	std::thread networking([&]()
 		{

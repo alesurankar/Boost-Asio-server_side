@@ -1,8 +1,8 @@
-﻿#include "ChatServer.h"
+﻿#include "TCP_Server.h"
 #include <iostream>
 
 
-ChatServer::ChatServer(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in)
+TCP_Server::TCP_Server(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in)
     :
     server_acceptor(io_context, tcp::endpoint(tcp::v4(), port)),
     msgHandler(msgHandler_in)
@@ -11,23 +11,23 @@ ChatServer::ChatServer(boost::asio::io_context& io_context, short port, std::sha
 }
 
 
-//bool ChatServer::Running()
+//bool TCP_Server::Running()
 //{
 //    return is_running;
 //}
 
 
-void ChatServer::Join(std::shared_ptr<ChatSession> client_session)
+void TCP_Server::Join(std::shared_ptr<ChatSession> client_session)
 {
-    std::cout << "ChatServer::Join: " << client_session << "\n";
+    std::cout << "TCP_Server::Join: " << client_session << "\n";
     active_sessions.insert(client_session);
     std::cout << "--------------\n\n";
 }
 
 
-void ChatServer::Leave(std::shared_ptr<ChatSession> client_session)
+void TCP_Server::Leave(std::shared_ptr<ChatSession> client_session)
 {
-    std::cout << "ChatServer::Leave: " << client_session << "\n"; 
+    std::cout << "TCP_Server::Leave: " << client_session << "\n"; 
     /*client_session.cancel();
     client_session.shutdown(asio::ip::tcp::socket::shutdown_both);
     client_session.close();*/
@@ -36,9 +36,9 @@ void ChatServer::Leave(std::shared_ptr<ChatSession> client_session)
 }
 
 
-void ChatServer::Accept()
+void TCP_Server::Accept()
 {
-    std::cout << "ChatServer::Accept:\n";
+    std::cout << "TCP_Server::Accept:\n";
     server_acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket)
         {
             if (!ec)
@@ -58,7 +58,7 @@ void ChatServer::Accept()
 
 
 
-ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server_in, std::shared_ptr<MessageHandler> msgHandler_in)
+ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<TCP_Server> server_in, std::shared_ptr<MessageHandler> msgHandler_in)
     :
     client_socket(std::move(socket_in)),
     chat_server(server_in),

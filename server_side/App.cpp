@@ -28,7 +28,7 @@ void App::Go()
         //float dtMs = dt * 1000.0f;
         //std::cout << "void App::Go(): Frame Time: " << dtMs << " ms\n";
 
-        GetMessage();
+        //GetMessage();
         SetMessage();
         nextFrame = false;
         //std::cout << "nextFrame: " << nextFrame << "\n\n";
@@ -36,16 +36,16 @@ void App::Go()
     std::this_thread::sleep_for(std::chrono::milliseconds(8));
 }
 
-void App::GetMessage()
-{
-    std::lock_guard<std::mutex> lock(mtx_in);
-    std::string in_msg = msgHandler->MSGToApp();
-    if (!in_msg.empty())
-    {
-        msg_toUpdate.push(in_msg);
-        std::cout << "void App::GetMessage(): " << in_msg << " pushed to msg_toUpdate\n";
-    }
-}
+//void App::GetMessage()
+//{
+//    std::lock_guard<std::mutex> lock(mtx_in);
+//    std::string in_msg = msgHandler->MSGToApp();
+//    if (!in_msg.empty())
+//    {
+//        msg_toUpdate.push(in_msg);
+//        std::cout << "void App::GetMessage(): " << in_msg << " pushed to msg_toUpdate\n";
+//    }
+//}
 
 void App::SetMessage()
 {
@@ -77,7 +77,7 @@ void App::UpdateLoop()
             //float dtMs = dt * 1000.0f;
             //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
 
-            TakeFromQueue();
+            //TakeFromQueue();
             UpdateParameters(message);
             PushToQueue();
             nextFrame = true;
@@ -88,16 +88,16 @@ void App::UpdateLoop()
     }
 }
 
-void App::TakeFromQueue()
-{
-    std::lock_guard<std::mutex> lock(mtx_in);
-    if (!msg_toUpdate.empty())
-    {
-        message = msg_toUpdate.front();
-        msg_toUpdate.pop();
-        std::cout << "void App::TakeFromQueue(): " << message << " poped from msg_toUpdate\n";
-    }
-}
+//void App::TakeFromQueue()
+//{
+//    std::lock_guard<std::mutex> lock(mtx_in);
+//    if (!msg_toUpdate.empty())
+//    {
+//        message = msg_toUpdate.front();
+//        msg_toUpdate.pop();
+//        std::cout << "void App::TakeFromQueue(): " << message << " poped from msg_toUpdate\n";
+//    }
+//}
 
 void App::UpdateParameters(const std::string& command)
 {

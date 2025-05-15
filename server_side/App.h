@@ -17,9 +17,9 @@ public:
 	void UpdateLoop();
 	void Go();
 private:
-	void TakeFromQueue();
+	//void TakeFromQueue();
 	void PushToQueue();
-	void GetMessage();
+	//void GetMessage();
 	void UpdateParameters(const std::string& command);
 	void SetMessage();
 private:

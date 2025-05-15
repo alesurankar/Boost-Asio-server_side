@@ -15,10 +15,10 @@ using boost::asio::ip::tcp;
 
 class ChatSession;
 
-class ChatServer : public std::enable_shared_from_this<ChatServer>
+class TCP_Server : public std::enable_shared_from_this<TCP_Server>
 {
 public:
-    ChatServer(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in);
+    TCP_Server(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in);
 //    bool Running();
     void Join(std::shared_ptr<ChatSession> client_session);
     void Leave(std::shared_ptr<ChatSession> client_session);
@@ -35,14 +35,14 @@ private:
 class ChatSession : public std::enable_shared_from_this<ChatSession>
 {
 public:
-    ChatSession(tcp::socket socket_in, std::weak_ptr<ChatServer> server_in, std::shared_ptr<MessageHandler> msgHandler_in);
+    ChatSession(tcp::socket socket_in, std::weak_ptr<TCP_Server> server_in, std::shared_ptr<MessageHandler> msgHandler_in);
     void Start();
 private:
     void ReadMessage();
     void CheckAndSend();
 private:
     tcp::socket client_socket;
-    std::weak_ptr<ChatServer> chat_server;
+    std::weak_ptr<TCP_Server> chat_server;
     boost::asio::streambuf input_buffer;
     std::shared_ptr<MessageHandler> msgHandler;
     std::string msg;
