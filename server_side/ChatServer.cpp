@@ -117,52 +117,43 @@ void ChatSession::ReadMessage()
 
 void ChatSession::CheckAndSend()
 {
-    auto self = shared_from_this(); 
-    msg = msgHandler->MSGToServer();
-    if (!msg.empty())
-    {
-        if (!client_socket.is_open())
+    float dt = ft.Mark();
+    float dtMs = dt * 1000.0f;
+    std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
+    auto self = shared_from_this();
+    timer.expires_after(std::chrono::milliseconds(8));
+    timer.async_wait([this, self](boost::system::error_code ec)
         {
-            std::cerr << "Socket is not open. Discarding message: " << msg << "\n";
-            boost::asio::post(client_socket.get_executor(), [this, self]()
-                {
-                    CheckAndSend();
-                });
-            return;
-        }
-        boost::asio::async_write(client_socket, boost::asio::buffer(msg),
-            [this, self](const boost::system::error_code& ec, std::size_t)
+            msg = msgHandler->MSGToServer();
+
+            if (!client_socket.is_open())
             {
-                if (!ec)
+                std::cerr << "Socket is not open.\n";
+                return;
+            }
+
+            boost::asio::async_write(client_socket, boost::asio::buffer(msg),
+                [this, self](const boost::system::error_code& ec, std::size_t)
                 {
-                    std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
-                }
-                else
-                {
-                    std::cerr << "Send error: " << ec.message() << "\n";
-                    if (auto server = chat_server.lock())
+                    if (!ec)
                     {
-                        server->Leave(shared_from_this());
+                        std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
                     }
-                    client_socket.close();
-                    return;
-                }
-                boost::asio::post(client_socket.get_executor(), [this, self]() 
+                    else
                     {
-                    CheckAndSend();
-                    });
-                std::cout << "Step 11--------------\n";
-            });
-    }
-    else
-    {
-        timer.expires_after(std::chrono::milliseconds(2));
-        timer.async_wait([this, self](boost::system::error_code ec)
-            {
-                if (!ec)
-                {
-                    CheckAndSend();
-                }
-            });
-    }
+                        std::cerr << "Send error: " << ec.message() << "\n";
+                        if (auto server = chat_server.lock())
+                        {
+                            server->Leave(shared_from_this());
+                        }
+                        client_socket.close();
+                        return;
+                    }
+                    boost::asio::post(client_socket.get_executor(), [this, self]()
+                        {
+                            CheckAndSend();
+                        });
+                });
+        });
+    std::cout << "Step 11--------------\n";
 }

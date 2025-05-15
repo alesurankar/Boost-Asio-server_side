@@ -8,6 +8,7 @@
 #include <deque>
 #include <unordered_set>
 #include <atomic>
+#include "FrameTimer.h"
 
 
 using boost::asio::ip::tcp;
@@ -46,6 +47,7 @@ private:
     std::shared_ptr<MessageHandler> msgHandler;
     std::string msg;
     boost::asio::steady_timer timer;
+    FrameTimer ft;
 //    std::string read_msg_;
 //    std::deque<std::string> write_msgs_;
 };

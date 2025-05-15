@@ -15,8 +15,9 @@ public:
 private:
 	std::mutex IN_mtx;
 	std::mutex OUT_mtx;
+	std::string validResponse;
 	std::queue<std::string> app_messages;
-	std::queue<std::string> app_responses;
+	//std::queue<std::string> app_responses;
 	//std::queue<std::pair<int, int>> app_position;
 	std::string msg = "";
 	std::string response = "";

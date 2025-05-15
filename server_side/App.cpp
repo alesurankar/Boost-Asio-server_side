@@ -23,15 +23,15 @@ void App::Go()
 {
     if (nextFrame)
     {
-        std::cout << "----------------------------------------------\n";
-        float dt = ft.Mark();
-        float dtMs = dt * 1000.0f;
-        std::cout << "void App::Go(): Frame Time: " << dtMs << " ms\n";
+        //std::cout << "----------------------------------------------\n";
+        //float dt = ft.Mark();
+        //float dtMs = dt * 1000.0f;
+        //std::cout << "void App::Go(): Frame Time: " << dtMs << " ms\n";
 
         GetMessage();
         SetMessage();
         nextFrame = false;
-        std::cout << "nextFrame: " << nextFrame << "\n\n";
+        //std::cout << "nextFrame: " << nextFrame << "\n\n";
     }
     std::this_thread::sleep_for(std::chrono::milliseconds(8));
 }
@@ -51,15 +51,15 @@ void App::SetMessage()
 {
     //std::lock_guard<std::mutex> lock(mtx_out);
     std::string out_msg;
-    std::cout << "void App::SetMessage(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
+    //std::cout << "void App::SetMessage(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
     if (!msg_isUpdated.empty())
     {
         out_msg = msg_isUpdated.front();
         msg_isUpdated.pop();
         //if (!noUpdate)
         //{
-            std::cout << "void App::SetMessage(): " << out_msg << "-poped from msg_isUpdated\n";
-            std::cout << "void App::SetMessage(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
+            //std::cout << "void App::SetMessage(): " << out_msg << "-poped from msg_isUpdated\n";
+            //std::cout << "void App::SetMessage(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
         //}
         msgHandler->AppToMSG(out_msg);
     }
@@ -73,16 +73,16 @@ void App::UpdateLoop()
     {
         if (!nextFrame)
         {
-            float dt = ft.Mark();
-            float dtMs = dt * 1000.0f;
-            std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
+            //float dt = ft.Mark();
+            //float dtMs = dt * 1000.0f;
+            //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
 
             TakeFromQueue();
             UpdateParameters(message);
             PushToQueue();
             nextFrame = true;
-            std::cout << "nextFrame: " << nextFrame << "\n";
-            std::cout << "----------------------------------------------\n\n";
+            //std::cout << "nextFrame: " << nextFrame << "\n";
+            //std::cout << "----------------------------------------------\n\n";
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(8));
     }
@@ -125,10 +125,11 @@ void App::UpdateParameters(const std::string& command)
 void App::PushToQueue()
 {
     //std::lock_guard<std::mutex> lock(mtx_out);
-    message = std::to_string(x) + "," + std::to_string(y) + "\n";
+    message = std::to_string(x) + "," + std::to_string(y);
     msg_isUpdated.push(message);
     //if (!noUpdate)
     //{
-        std::cout << "void App::PushToQueue(): " << message << "-pushed to msg_isUpdated\n";
+        //std::cout << "void App::PushToQueue(): " << message << "-pushed to msg_isUpdated\n";
+        //std::cout << "void App::PushToQueue(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
     //}
 }
