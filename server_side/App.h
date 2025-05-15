@@ -3,7 +3,9 @@
 #include "FrameTimer.h"
 #include <string>
 #include <mutex>
-//#include <thread>
+#include <thread>
+#include <mutex>
+#include <queue>
 
 
 class App
@@ -12,18 +14,23 @@ public:
 	App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_in);
 	//std::pair<int, int> UpdatePos(const std::string& command);
 	void UpdateLoop();
+	void Go();
 private:
+	void TakeFromQueue();
+	void PushToQueue();
 	void GetMessage();
-	void UpdateParameters();
+	void UpdateParameters(const std::string& command);
 	void SetMessage();
-	void Unpack(const std::string& command);
-	void PackToString();
 private:
 	FrameTimer ft;
 	int x = 100;
 	int y = 100;
-	//std::thread UpdateThread;
+	std::string message;
+	std::thread UpdateThread;
 	std::shared_ptr<MessageHandler> msgHandler;
 	std::atomic<bool>& running;
-	std::string msg;
+	std::mutex(mtx_in);
+	std::mutex(mtx_out);
+	std::queue<std::string> msg_toUpdate;
+	std::queue<std::string> msg_isUpdated;
 };

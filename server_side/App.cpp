@@ -6,49 +6,64 @@ App::App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_
     msgHandler(msgHandler_in),
     running(runFlag)
 {
-    //UpdateThread = std::thread(&App::InputLoop, this);
+    UpdateThread = std::thread(&App::UpdateLoop, this);
 }
 
-
-//std::pair<int, int> App::UpdatePos(const std::string& command)
-//{
-//    Unpack(command);
-//    return std::pair<int, int>(x, y);
-//}
-
-
-void App::UpdateLoop()
+void App::Go()
 {
-    float dt = ft.Mark();
-    float dtMs = dt * 1000.0f;
+    //float dt = ft.Mark();
+    //float dtMs = dt * 1000.0f;
     //std::cout << "Frame Time: " << dtMs << " ms" << std::endl;
 
     GetMessage();
-    UpdateParameters();
     SetMessage();
     std::this_thread::sleep_for(std::chrono::milliseconds(8));
 }
 
-
 void App::GetMessage()
 {
-    msg = msgHandler->MSGToApp();
+    std::lock_guard<std::mutex> lock(mtx_in);
+    std::string in_msg = msgHandler->MSGToApp();
+    msg_toUpdate.push(in_msg);
 }
-
-
-void App::UpdateParameters()
-{
-    Unpack(msg);
-}
-
 
 void App::SetMessage()
 {
-    msgHandler->AppToMSG(msg);
+    std::lock_guard<std::mutex> lock(mtx_out);
+    std::string out_msg;
+    if (!msg_isUpdated.empty())
+    {
+        out_msg = msg_isUpdated.front();
+        msg_isUpdated.pop();
+        msgHandler->AppToMSG(out_msg);
+    }
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
-void App::Unpack(const std::string& command)
+void App::UpdateLoop()
+{
+    //float dt = ft.Mark();
+    //float dtMs = dt * 1000.0f;
+    //std::cout << "Frame Time: " << dtMs << " ms" << std::endl;
+
+    TakeFromQueue();
+    UpdateParameters(message);
+    PushToQueue();
+    std::this_thread::sleep_for(std::chrono::milliseconds(8));
+}
+
+void App::TakeFromQueue()
+{
+    std::lock_guard<std::mutex> lock(mtx_in);
+    if (!msg_toUpdate.empty())
+    {
+        message = msg_toUpdate.front();
+        msg_toUpdate.pop();
+    }
+}
+
+void App::UpdateParameters(const std::string& command)
 {
     if (command == "FIRST_MESSAGE")
     {
@@ -68,8 +83,9 @@ void App::Unpack(const std::string& command)
     }
 }
 
-
-void App::PackToString()
+void App::PushToQueue()
 {
-    msg = std::to_string(x) + "," + std::to_string(y) + "\n";
+    std::lock_guard<std::mutex> lock(mtx_out);
+    message = std::to_string(x) + "," + std::to_string(y) + "\n";
+    msg_toUpdate.push(message);
 }

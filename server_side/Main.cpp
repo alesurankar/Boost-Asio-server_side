@@ -24,7 +24,7 @@ int main()
 
 	while (running)
 	{
-		theApp.UpdateLoop();
+		theApp.Go();
 	}
 
 	running = false;

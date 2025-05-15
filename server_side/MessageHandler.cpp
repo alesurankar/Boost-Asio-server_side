@@ -49,10 +49,10 @@ std::string MessageHandler::MSGToServer()
 		}
 		else
 		{
-			msg = "";
+			response = "";
 		}
 	}
-	return msg;
+	return response;
 }
 
 
