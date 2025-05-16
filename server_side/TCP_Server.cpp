@@ -2,9 +2,15 @@
 #include <iostream>
 
 
-TCP_Server::TCP_Server(boost::asio::io_context& io_context, short port, std::shared_ptr<MessageHandler> msgHandler_in)
+
+namespace beast = boost::beast;
+namespace http = beast::http;
+
+
+
+TCP_Server::TCP_Server(boost::asio::io_context& io_context, const std::string& address, short port, std::shared_ptr<MessageHandler> msgHandler_in)
     :
-    server_acceptor(io_context, tcp::endpoint(tcp::v4(), port)),
+    server_acceptor(io_context, tcp::endpoint(boost::asio::ip::make_address(address), port)),
     msgHandler(msgHandler_in)
 {
     Accept();
@@ -17,15 +23,32 @@ TCP_Server::TCP_Server(boost::asio::io_context& io_context, short port, std::sha
 //}
 
 
-void TCP_Server::Join(std::shared_ptr<ChatSession> client_session)
+void TCP_Server::Join(std::shared_ptr<TCP_Session> client_session)
 {
-    std::cout << "TCP_Server::Join: " << client_session << "\n";
+    std::cout << "TCP_Server::Join: " << client_session << "\n";      
     active_sessions.insert(client_session);
     std::cout << "--------------\n\n";
 }
 
 
-void TCP_Server::Leave(std::shared_ptr<ChatSession> client_session)
+void TCP_Server::RemoveClient(std::shared_ptr<tcp::socket> socket)                                  // CHECK
+{                                                                                                   // CHECK
+    std::lock_guard<std::mutex> lock(clients_mutex);                                                // CHECK
+    clients.erase(std::remove(clients.begin(), clients.end(), socket), clients.end());              // CHECK
+                                                                                                    // CHECK
+    auto it = client_names.find(socket);                                                            // CHECK
+    if (it != client_names.end())                                                                   // CHECK
+    {                                                                                               // CHECK
+        std::cout << "Client (" << it->second << ") disconnected\n";                                // CHECK
+        client_names.erase(it);                                                                     // CHECK
+    }                                                                                               // CHECK
+    else                                                                                            // CHECK
+    {                                                                                               // CHECK
+        std::cout << "Client disconnected\n";                                                       // CHECK
+    }                                                                                               // CHECK
+}                                                                                                   // CHECK
+
+void TCP_Server::Leave(std::shared_ptr<TCP_Session> client_session)
 {
     std::cout << "TCP_Server::Leave: " << client_session << "\n"; 
     /*client_session.cancel();
@@ -43,7 +66,9 @@ void TCP_Server::Accept()
         {
             if (!ec)
             {
-                auto session = std::make_shared<ChatSession>(std::move(socket), shared_from_this(), msgHandler);
+                int client_id = client_counter++;
+                std::cout << "Client " << client_id << " trying to connect\n";
+                auto session = std::make_shared<TCP_Session>(client_id, std::move(socket), shared_from_this(), msgHandler);
                 Join(session);
                 session->Start();
             }
@@ -57,22 +82,52 @@ void TCP_Server::Accept()
 }
 
 
+bool TCP_Server::SendSignalToFastAPI(const std::string& username)
+{
+    boost::asio::io_context ioc;
+    boost::asio::ip::tcp::resolver resolver(ioc);
+    auto const results = resolver.resolve("127.0.0.1", "8000");
 
-ChatSession::ChatSession(tcp::socket socket_in, std::weak_ptr<TCP_Server> server_in, std::shared_ptr<MessageHandler> msgHandler_in)
+    boost::asio::ip::tcp::socket fastapi_socket(ioc);
+    boost::asio::connect(fastapi_socket, results.begin(), results.end());
+
+    std::string url = "/check-users/" + username;
+    http::request<http::string_body> req{ http::verb::get, url, 11 };
+    req.set(http::field::host, "localhost");
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+
+    http::write(fastapi_socket, req);
+
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+    http::read(fastapi_socket, buffer, res);
+
+    std::string fastapi_response = res.body();
+    boost::json::value json = boost::json::parse(fastapi_response);
+
+    fastapi_socket.close();
+
+    return json.at("exists").as_bool();
+}
+
+
+
+TCP_Session::TCP_Session(int client_id_in, std::shared_ptr<tcp::socket> socket_in, std::weak_ptr<TCP_Server> server_in, std::shared_ptr<MessageHandler> msgHandler_in)
     :
+    client_id(client_id_in),
     client_socket(std::move(socket_in)),
     chat_server(server_in),
     msgHandler(msgHandler_in),
-    timer(socket_in.get_executor())
+    timer(socket_in->get_executor())
 {}
 
 
-void ChatSession::Start()
+void TCP_Session::Start()
 {
-    std::cout << "ChatSession::Start:\n";
-    ReadMessage();
+    std::cout << "TCP_Session::Start:\n";
+    HandleClient(client_socket, client_id); 
     auto self = shared_from_this();
-    boost::asio::post(client_socket.get_executor(), [this, self]()
+    boost::asio::post(client_socket->get_executor(), [this, self]()
         {
             CheckAndSend();
         });
@@ -80,11 +135,40 @@ void ChatSession::Start()
 }
 
 
-void ChatSession::ReadMessage()
+void TCP_Session::HandleClient(std::shared_ptr<tcp::socket> socket, int client_id)      // NEW
+{                                                                                       // NEW
+    std::string username;                                                               // NEW
+    boost::asio::streambuf buf;                                                         // NEW
+    boost::asio::read_until(*socket, buf, '\n');                                        // NEW
+    std::istream is(&buf);                                                              // NEW
+    std::getline(is, username);                                                         // NEW
+                                                                                        // NEW
+    {                                                                                   // NEW
+        std::lock_guard<std::mutex> lock(clients_mutex);                                // NEW
+        client_names[socket] = username;                                                // NEW
+    }                                                                                   // NEW
+                                                                                        // NEW
+    bool valid_username_check = SendSignalToFastAPI(username);                          // NEW
+    std::string log_message;                                                            // NEW
+    if (valid_username_check)                                                           // NEW
+    {                                                                                   // NEW
+        log_message = "Welcome, " + username + "\n";                                    // NEW
+        boost::asio::write(*socket, boost::asio::buffer(log_message));                  // NEW
+        ReadMessage();                                                                  // NEW
+    }                                                                                   // NEW
+    else                                                                                // NEW
+    {                                                                                   // NEW
+        log_message = "Username " + username + " does not exist\n";                     // NEW
+        boost::asio::write(*socket, boost::asio::buffer(log_message));                  // NEW
+        RemoveClient(socket);                                                           // NEW
+    }                                                                                   // NEW                  
+}                                                                                       // NEW 
+
+void TCP_Session::ReadMessage()
 {
     //float dt = ft.Mark();
     //float dtMs = dt * 1000.0f;
-    //std::cout << "void ChatSession::ReadMessage(): Frame Time: " << dtMs << " ms\n";
+    //std::cout << "void TCP_Session::ReadMessage(): Frame Time: " << dtMs << " ms\n";
     auto self = shared_from_this();
     boost::asio::async_read_until(client_socket, input_buffer, '\n',
         [this, self](boost::system::error_code ec, std::size_t length) 
@@ -95,7 +179,7 @@ void ChatSession::ReadMessage()
                 std::string msg;
                 std::getline(is, msg);
 
-                //std::cout << "Step 4, ChatSession::ReadMessage::Received: " << msg << "\n";
+                //std::cout << "Step 4, TCP_Session::ReadMessage::Received: " << msg << "\n";
 
                 if (!msg.empty())
                 {
@@ -109,7 +193,7 @@ void ChatSession::ReadMessage()
                 {
                     server->Leave(shared_from_this());
                 }
-                client_socket.close(); 
+                client_socket->close(); 
                 return;
             }
             ReadMessage();
@@ -118,7 +202,7 @@ void ChatSession::ReadMessage()
 }
 
 
-void ChatSession::CheckAndSend()
+void TCP_Session::CheckAndSend()
 {
     //float dt = ft.Mark();
     //float dtMs = dt * 1000.0f;
@@ -129,7 +213,7 @@ void ChatSession::CheckAndSend()
         {
             msg = msgHandler->MSGToServer();
 
-            if (!client_socket.is_open())
+            if (!client_socket->is_open())
             {
                 std::cerr << "Socket is not open.\n";
                 return;
@@ -140,7 +224,17 @@ void ChatSession::CheckAndSend()
                 {
                     if (!ec)
                     {
-                        //std::cout << "Step 11: ChatSession::CheckAndSend: " << msg;
+                        std::lock_guard<std::mutex> lock(clients_mutex);                          // NEW
+                        for (auto& client : clients)                                              // NEW
+                        {                                                                         // NEW
+                            if (client != sender)                                                 // NEW
+                            {                                                                     // NEW
+                                boost::system::error_code ec;                                     // NEW
+                                boost::asio::write(*client, boost::asio::buffer(msg), ec);        // NEW
+                            }                                                                     // NEW
+                        }                                                                         // NEW
+
+                        //std::cout << "Step 11: TCP_Session::CheckAndSend: " << msg;
                     }
                     else
                     {
@@ -149,10 +243,10 @@ void ChatSession::CheckAndSend()
                         {
                             server->Leave(shared_from_this());
                         }
-                        client_socket.close();
+                        client_socket->close();
                         return;
                     }
-                    boost::asio::post(client_socket.get_executor(), [this, self]()
+                    boost::asio::post(client_socket->get_executor(), [this, self]()
                         {
                             CheckAndSend();
                         });

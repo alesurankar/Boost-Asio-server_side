@@ -14,8 +14,8 @@ int main()
 
 	App theApp(running, msgHandler);
 
-    boost::asio::io_context io;
-    global_server = std::make_shared<TCP_Server>(io, 1234, msgHandler);
+    boost::asio::io_context io; 
+    global_server = std::make_shared<TCP_Server>(io, "127.0.0.1", 1234, msgHandler);
     
 	std::thread networking([&]()
 		{
