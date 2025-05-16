@@ -247,37 +247,32 @@ bool TCP_Session::AskFastAPI()
     const std::string& fastapi_response = res.body();
     boost::json::value json = boost::json::parse(fastapi_response);
 
-    fastapi_socket.close();
-
     return json.at("exists").as_bool();
 }
 
 std::string TCP_Session::GetPositionFromFastAPI()
 {
-    std::string url = "/get-position/" + username;  // Call the new endpoint
+    std::string url = "/get-position/" + username;
     
-    //http::request<http::string_body> req{ http::verb::get, url, 11 };
-    //req.set(http::field::host, "localhost");
-    //req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
-    //
-    //http::write(fastapi_socket, req);
-    //
-    //beast::flat_buffer buffer;
-    //http::response<http::string_body> res;
-    //http::read(fastapi_socket, buffer, res);
-    //
-    //const std::string& fastapi_response = res.body();
-    //
-    //fastapi_socket.close();
-    //
-    //boost::json::value json = boost::json::parse(fastapi_response);
-    //
-    //double x = json.at("x").as_double();
-    //double y = json.at("y").as_double();
-    //
+    http::request<http::string_body> req{ http::verb::get, url, 11 };
+    req.set(http::field::host, "localhost");
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
 
-    int x = 10;
-    int y = 10;
+    http::write(fastapi_socket, req);
+
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+    http::read(fastapi_socket, buffer, res);
+
+    const std::string& fastapi_response = res.body();
+
+    fastapi_socket.close();
+    
+    boost::json::value json = boost::json::parse(fastapi_response);
+    
+    int x = static_cast<int>(json.at("x").as_int64());
+    int y = static_cast<int>(json.at("y").as_int64());
+
     return std::to_string(x) + "," + std::to_string(y);
 }
 
