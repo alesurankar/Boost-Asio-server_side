@@ -47,6 +47,7 @@ private:
     void CheckAndSend();
     void ConnectToFastAPI();
     bool AskFastAPI();
+    std::string GetPositionFromFastAPI();
     void SaveToFastAPI();
 private:
     FrameTimer ft;

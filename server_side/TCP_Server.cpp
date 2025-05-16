@@ -104,10 +104,11 @@ void TCP_Session::HandleClient()
 
     std::string log_message;                                            
     if (AskFastAPI())
-    {                                                                   
-        log_message = "Welcome, " + username + "\n";                    
+    {          
+        std::string pos = GetPositionFromFastAPI();
+        log_message = "Welcome, " + username + " position is: " + pos + "\n";                    
         boost::asio::write(*client_socket, boost::asio::buffer(log_message));
-        std::cout << "Message send to Client: Welcome, " << username << "\n";
+        std::cout << "Message send to Client: Welcome, " << username << " position is: " << pos << "\n";
         ReadMessage();                                                  
     }                                                                   
     else                                                                
@@ -225,7 +226,7 @@ void TCP_Session::ConnectToFastAPI()
 
 bool TCP_Session::AskFastAPI()
 {
-    if (!fastapi_socket.is_open()) 
+    if (!fastapi_socket.is_open())
     {
         std::cerr << "FastAPI socket not open.\n";
         return false;
@@ -250,6 +251,36 @@ bool TCP_Session::AskFastAPI()
 
     return json.at("exists").as_bool();
 }
+
+std::string TCP_Session::GetPositionFromFastAPI()
+{
+    std::string url = "/get-position/" + username;  // Call the new endpoint
+    
+    //http::request<http::string_body> req{ http::verb::get, url, 11 };
+    //req.set(http::field::host, "localhost");
+    //req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    //
+    //http::write(fastapi_socket, req);
+    //
+    //beast::flat_buffer buffer;
+    //http::response<http::string_body> res;
+    //http::read(fastapi_socket, buffer, res);
+    //
+    //const std::string& fastapi_response = res.body();
+    //
+    //fastapi_socket.close();
+    //
+    //boost::json::value json = boost::json::parse(fastapi_response);
+    //
+    //double x = json.at("x").as_double();
+    //double y = json.at("y").as_double();
+    //
+
+    int x = 10;
+    int y = 10;
+    return std::to_string(x) + "," + std::to_string(y);
+}
+
 
 void TCP_Session::SaveToFastAPI()
 {
