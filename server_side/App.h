@@ -4,7 +4,6 @@
 #include <string>
 #include <mutex>
 #include <thread>
-#include <mutex>
 #include <queue>
 
 
@@ -39,5 +38,4 @@ private:
 	std::mutex(mtx_out);
 	std::queue<std::string> msg_toUpdate;
 	std::queue<std::string> msg_isUpdated;
-	std::atomic<bool> noUpdate;
 };

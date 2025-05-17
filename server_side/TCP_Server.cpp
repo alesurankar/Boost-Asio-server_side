@@ -171,30 +171,33 @@ void TCP_Session::CheckAndSend()
     //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
      
     auto self = shared_from_this();
-    std::cout << "void TCP_Session::CheckAndSend(): Client Session: " << self.get() << "\n";
+    //std::cout << "void TCP_Session::CheckAndSend(): Client Session: " << self.get() << "\n";
     timer.expires_after(std::chrono::milliseconds(8));
     timer.async_wait([this, self](boost::system::error_code ec)
         {
 
             msg = msgHandler->MSGToServer();
 
-            std::cout << "New raw message: " << msg << std::endl;
+            std::cout << "New raw message: \n" << msg << "\n";
 
-            start_position = "";
+            start_position.clear();
 
-            if (msg.compare(0, Constants::player_prefix_len, Constants::player_prefix) == 0)
+            size_t newlinePos = msg.find('\n');
+            std::string playerPart = (newlinePos != std::string::npos) ? msg.substr(0, newlinePos) : msg;
+
+            if (playerPart.compare(0, Constants::player_prefix_len, Constants::player_prefix) == 0)
             {
-                std::string position_data = msg.substr(Constants::player_prefix_len);
+                std::string position_data = playerPart.substr(Constants::player_prefix_len);
                 start_position = "start_position:" + position_data;
-                std::cout << "If triggerd: New Starting position: " << start_position << "\n";
+                std::cout << "If triggerd: New Starting position: \n" << start_position << "\n";
             }
             else
             {
-                start_position = "start_position:" + msg;// position_data;
-                std::cout << "Else triggerd: New Starting position: " << start_position << "\n";
+                start_position = "start_position:" + playerPart;// position_data;
+                std::cout << "Else triggerd: New Starting position: \n" << start_position << "\n";
             }
 
-            std::cout << "New Starting position: " << start_position << "\n";
+            std::cout << "New Starting position: \n" << start_position << "\n";
             if (start_position.back() == '\n')
             {
                 start_position.pop_back();
@@ -227,7 +230,7 @@ void TCP_Session::CheckAndSend()
                         //    }                                                                     // NEW
                         //}                                                                         // NEW
             
-                        std::cout << "Step 11: TCP_Session::CheckAndSend: " << msg;
+                        std::cout << "Step 11: TCP_Session::CheckAndSend: \n" << msg;
                     }
                     else
                     {

@@ -6,7 +6,6 @@ App::App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_
     :
     msgHandler(msgHandler_in),
     running(runFlag),
-    noUpdate(true),
     nextFrame(true)
 {
     UpdateThread = std::thread(&App::UpdateLoop, this);
@@ -34,7 +33,6 @@ void App::Go()
         nextFrame = false;
         //std::cout << "nextFrame: " << nextFrame << "\n\n";
     }
-    //std::this_thread::sleep_for(std::chrono::milliseconds(8));
 }
 
 void App::GetMessage()
@@ -57,11 +55,6 @@ void App::SetMessage()
     {
         out_msg = msg_isUpdated.front();
         msg_isUpdated.pop();
-        //if (!noUpdate)
-        //{
-            //std::cout << "void App::SetMessage(): " << out_msg << "-poped from msg_isUpdated\n";
-            //std::cout << "void App::SetMessage(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
-        //}
         msgHandler->AppToMSG(out_msg);
     }
 }
@@ -79,20 +72,20 @@ void App::UpdateLoop()
             //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
 
             TakeFromQueue();
-            //UpdateGame();
+            UpdateGame();
             UpdateParameters(message);
             PushToQueue();
             nextFrame = true;
             //std::cout << "nextFrame: " << nextFrame << "\n";
             //std::cout << "----------------------------------------------\n\n";
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(8));
+        std::this_thread::sleep_for(std::chrono::milliseconds(4));
     }
 }
 
 void App::TakeFromQueue()
 {
-    //std::lock_guard<std::mutex> lock(mtx_in);
+    std::lock_guard<std::mutex> lock(mtx_in);
     if (!msg_toUpdate.empty())
     {
         message = msg_toUpdate.front();
@@ -137,12 +130,12 @@ void App::UpdateParameters(std::string command)
     {
         switch (c)
         {
-        case 'W': y--; noUpdate = false; break;
-        case 'S': y++; noUpdate = false; break;
-        case 'A': x--; noUpdate = false; break;
-        case 'D': x++; noUpdate = false; break;
+        case 'W': y--; break;
+        case 'S': y++; break;
+        case 'A': x--; break;
+        case 'D': x++; break;
         
-        default: noUpdate = true; break;
+        default: break;
         }
     }
     //std::cout << "void App::UpdateParameters(const std::string& command): x = : " << x <<"\n";
@@ -188,13 +181,8 @@ void App::UpdateGame()
 void App::PushToQueue()
 {
     //std::lock_guard<std::mutex> lock(mtx_out);
-    std::string player = "player:" + std::to_string(x) + "," + std::to_string(y);// +"\n";
-    //std::string game = "enemy:" + std::to_string(xEnemy) + "," + std::to_string(yEnemy);
-    message = player;// +game;
+    std::string player = "player:" + std::to_string(x) + "," + std::to_string(y) +"|";
+    std::string game = "enemy:" + std::to_string(xEnemy) + "," + std::to_string(yEnemy);
+    message = player + game;
     msg_isUpdated.push(message);
-    //if (!noUpdate)
-    //{
-        //std::cout << "void App::PushToQueue(): " << message << "-pushed to msg_isUpdated\n";
-        //std::cout << "void App::PushToQueue(): msg_isUpdated.size(): " << msg_isUpdated.size() << "\n";
-    //}
 }
