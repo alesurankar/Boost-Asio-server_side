@@ -102,6 +102,30 @@ void App::TakeFromQueue()
 void App::UpdateParameters(std::string command)
 {
     message = "";
+    constexpr const char* prefix = "start_position:";
+    constexpr size_t prefix_len = sizeof("start_position:") - 1;
+
+    if (command.compare(0, prefix_len, prefix) == 0) 
+    {
+        const char* data = command.c_str() + prefix_len;
+
+        // Parse x
+        while (*data >= '0' && *data <= '9') 
+        {
+            x = x * 10 + (*data - '0');
+            ++data;
+        }
+
+        if (*data == ',') ++data;
+
+        // Parse y
+        while (*data >= '0' && *data <= '9') 
+        {
+            y = y * 10 + (*data - '0');
+            ++data;
+        }
+    }
+
     //std::cout << "void App::UpdateParameters(const std::string& command): " << command << " updating\n";
     if (command == "FIRST_MESSAGE")
     {

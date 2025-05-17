@@ -47,12 +47,13 @@ private:
     void CheckAndSend();
     void ConnectToFastAPI();
     bool AskFastAPI();
-    std::string GetPositionFromFastAPI();
+    void GetPositionFromFastAPI();
     void SaveToFastAPI();
 private:
     FrameTimer ft;
     std::string msg; 
     std::string username;
+    std::string start_position;
     std::shared_ptr<tcp::socket> client_socket;
     boost::asio::ip::tcp::socket fastapi_socket;
     tcp::resolver resolver;

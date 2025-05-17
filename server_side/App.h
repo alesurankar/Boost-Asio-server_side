@@ -23,8 +23,8 @@ private:
 	void SetMessage();
 private:
 	FrameTimer ft;
-	int x = 100;
-	int y = 100;
+	int x;
+	int y;
 	std::string message;
 	std::thread UpdateThread;
 	std::shared_ptr<MessageHandler> msgHandler;

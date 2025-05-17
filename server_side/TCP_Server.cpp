@@ -104,11 +104,12 @@ void TCP_Session::HandleClient()
 
     std::string log_message;                                            
     if (AskFastAPI())
-    {          
-        std::string pos = GetPositionFromFastAPI();
-        log_message = "Welcome, " + username + " position is: " + pos + "\n";                    
+    {
+        GetPositionFromFastAPI();
+        log_message = "Welcome, " + username + " " + start_position + "\n";
         boost::asio::write(*client_socket, boost::asio::buffer(log_message));
-        std::cout << "Message send to Client: Welcome, " << username << " position is: " << pos << "\n";
+        std::cout << "Message send to Client: " << log_message << "\n";
+        msgHandler->ServerToMSG(start_position);
         ReadMessage();                                                  
     }                                                                   
     else                                                                
@@ -250,7 +251,7 @@ bool TCP_Session::AskFastAPI()
     return json.at("exists").as_bool();
 }
 
-std::string TCP_Session::GetPositionFromFastAPI()
+void TCP_Session::GetPositionFromFastAPI()
 {
     std::string url = "/get-position/" + username;
     
@@ -273,7 +274,7 @@ std::string TCP_Session::GetPositionFromFastAPI()
     int x = static_cast<int>(json.at("x").as_int64());
     int y = static_cast<int>(json.at("y").as_int64());
 
-    return std::to_string(x) + "," + std::to_string(y);
+    start_position = "start_position:" + std::to_string(x) + "," + std::to_string(y);
 }
 
 
