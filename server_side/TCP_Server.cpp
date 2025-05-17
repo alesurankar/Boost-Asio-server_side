@@ -178,12 +178,23 @@ void TCP_Session::CheckAndSend()
 
             msg = msgHandler->MSGToServer();
 
-            std::cout << "New raw message: '" << msg << "'" << std::endl;
+            std::cout << "New raw message: " << msg << std::endl;
 
             start_position = "";
-            start_position = "start_position:" + msg;
 
-            std::cout << "New Starting position: '" << start_position << "'" << std::endl;
+            if (msg.compare(0, Constants::player_prefix_len, Constants::player_prefix) == 0)
+            {
+                std::string position_data = msg.substr(Constants::player_prefix_len);
+                start_position = "start_position:" + position_data;
+                std::cout << "If triggerd: New Starting position: " << start_position << "\n";
+            }
+            else
+            {
+                start_position = "start_position:" + msg;// position_data;
+                std::cout << "Else triggerd: New Starting position: " << start_position << "\n";
+            }
+
+            std::cout << "New Starting position: " << start_position << "\n";
             if (start_position.back() == '\n')
             {
                 start_position.pop_back();
@@ -302,32 +313,6 @@ void TCP_Session::SaveToFastAPI()
     std::string url = "/update-position/" + username;
 
     std::cout << "string to save: " << start_position << std::endl;
-    /*int x = 0;
-    int y = 0;
-
-    const char* data = start_position.c_str();
-    if (start_position.compare(0, Constants::prefix_len, Constants::prefix) == 0)
-    {
-        data += Constants::prefix_len;
-        if (start_position.compare(0, Constants::player_prefix_len, Constants::player_prefix) == 0)
-        {
-            data += Constants::player_prefix_len;
-
-            while (*data >= '0' && *data <= '9')
-            {
-                x = x * 10 + (*data - '0');
-                ++data;
-            }
-
-            if (*data == ',') ++data;
-
-            while (*data >= '0' && *data <= '9')
-            {
-                y = y * 10 + (*data - '0');
-                ++data;
-            }
-        }
-    }*/
     int x = 0;
     int y = 0;
 
@@ -337,13 +322,13 @@ void TCP_Session::SaveToFastAPI()
     if (start_position.compare(0, Constants::prefix_len, Constants::prefix) == 0)
     {
         data += Constants::prefix_len; // move past "start_position:"
-    }
 
-    // Now check for "player:" at the new position
-    if (std::strncmp(data, Constants::player_prefix, Constants::player_prefix_len) == 0)
-    {
-        data += Constants::player_prefix_len; // move past "player:"
-
+        //// Now check for "player:" at the new position
+        //if (std::strncmp(data, Constants::player_prefix, Constants::player_prefix_len) == 0)
+        //{
+        //    data += Constants::player_prefix_len; // move past "player:"
+        //}
+        
         while (*data >= '0' && *data <= '9')
         {
             x = x * 10 + (*data - '0');
@@ -357,7 +342,6 @@ void TCP_Session::SaveToFastAPI()
             y = y * 10 + (*data - '0');
             ++data;
         }
-
     }
 
     std::cout << "extracted values: x = " << x << ", y = " << y << "\n\n";

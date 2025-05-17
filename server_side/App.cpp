@@ -188,7 +188,7 @@ void App::UpdateGame()
 void App::PushToQueue()
 {
     //std::lock_guard<std::mutex> lock(mtx_out);
-    std::string player = /*"player:" + */std::to_string(x) + "," + std::to_string(y);// +"\n";
+    std::string player = "player:" + std::to_string(x) + "," + std::to_string(y);// +"\n";
     //std::string game = "enemy:" + std::to_string(xEnemy) + "," + std::to_string(yEnemy);
     message = player;// +game;
     msg_isUpdated.push(message);
