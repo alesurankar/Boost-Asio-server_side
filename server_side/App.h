@@ -20,11 +20,16 @@ private:
 	void PushToQueue();
 	void GetMessage();
 	void UpdateParameters(std::string command);
+	void UpdateGame();
 	void SetMessage();
 private:
 	FrameTimer ft;
 	int x;
 	int y;
+	int xEnemy = 200;
+	int yEnemy = 200;
+	bool moveUP = true;
+	bool moveLeft = true;
 	std::string message;
 	std::thread UpdateThread;
 	std::shared_ptr<MessageHandler> msgHandler;

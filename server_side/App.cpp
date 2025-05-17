@@ -79,6 +79,7 @@ void App::UpdateLoop()
             //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
 
             TakeFromQueue();
+            //UpdateGame();
             UpdateParameters(message);
             PushToQueue();
             nextFrame = true;
@@ -148,10 +149,48 @@ void App::UpdateParameters(std::string command)
     //std::cout << "void App::UpdateParameters(const std::string& command): y = : " << y << "\n\n";
 }
 
+void App::UpdateGame()
+{
+    if (xEnemy < 100)
+    {
+        moveLeft = false;
+    }
+    if (xEnemy > 700)
+    {
+        moveLeft = true;
+    }
+    if (yEnemy < 100)
+    {
+        moveUP = false;
+    }
+    if (yEnemy > 500)
+    {
+        moveUP = true;
+    }
+    if (moveUP)
+    {
+        yEnemy--;
+    }
+    else if (!moveUP)
+    {
+        yEnemy++;
+    }
+    if (moveLeft)
+    {
+        xEnemy--;
+    }
+    else if (!moveLeft)
+    {
+        xEnemy++;
+    }
+}
+
 void App::PushToQueue()
 {
     //std::lock_guard<std::mutex> lock(mtx_out);
-    message = std::to_string(x) + "," + std::to_string(y);
+    std::string player = /*"player:" + */std::to_string(x) + "," + std::to_string(y);// +"\n";
+    //std::string game = "enemy:" + std::to_string(xEnemy) + "," + std::to_string(yEnemy);
+    message = player;// +game;
     msg_isUpdated.push(message);
     //if (!noUpdate)
     //{
