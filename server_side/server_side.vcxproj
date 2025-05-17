@@ -139,6 +139,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="App.h" />
+    <ClInclude Include="Constants.h" />
     <ClInclude Include="TCP_Server.h" />
     <ClInclude Include="FrameTimer.h" />
     <ClInclude Include="MessageHandler.h" />

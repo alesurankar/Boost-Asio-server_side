@@ -1,4 +1,5 @@
 #include "App.h"
+#include "Constants.h"
 #include <iostream>
 
 App::App(std::atomic<bool>& runFlag, std::shared_ptr<MessageHandler> msgHandler_in)
@@ -102,20 +103,20 @@ void App::TakeFromQueue()
 void App::UpdateParameters(std::string command)
 {
     message = "";
-    constexpr const char* prefix = "start_position:";
-    constexpr size_t prefix_len = sizeof("start_position:") - 1;
 
-    if (command.compare(0, prefix_len, prefix) == 0) 
+    if (command.compare(0, Constants::prefix_len, Constants::prefix) == 0)
     {
-        const char* data = command.c_str() + prefix_len;
+        const char* data = command.c_str() + Constants::prefix_len;
 
         // Parse x
+        x = 0;
         while (*data >= '0' && *data <= '9') 
         {
             x = x * 10 + (*data - '0');
             ++data;
         }
 
+        y = 0;
         if (*data == ',') ++data;
 
         // Parse y

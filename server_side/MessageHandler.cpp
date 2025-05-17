@@ -46,7 +46,7 @@ void MessageHandler::AppToMSG(const std::string& response)
 std::string MessageHandler::MSGToServer()
 {
 	//{
-	//	std::lock_guard<std::mutex> lock(OUT_mtx);
+	std::lock_guard<std::mutex> lock(OUT_mtx);
 	//	if (!app_responses.empty())
 	//	{
 	//		response = app_responses.front();
@@ -61,6 +61,7 @@ std::string MessageHandler::MSGToServer()
 	//std::cout << "std::string MessageHandler::MSGToServer(): app_responses.size(): " << app_responses.size() << "\n";
 	//return response;
 	std::string messageToServer = validResponse + "\n";
+	validResponse.clear();
 	//std::cout << "std::string MessageHandler::MSGToServer(): " << messageToServer << "-was read\n";
 	return messageToServer;
 }

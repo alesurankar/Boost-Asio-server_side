@@ -1,4 +1,5 @@
 ﻿#include "TCP_Server.h"
+#include "Constants.h"
 #include <iostream>
 
 
@@ -12,9 +13,7 @@ TCP_Server::TCP_Server(boost::asio::io_context& io_context, const std::string& a
     :
     server_acceptor(io_context, tcp::endpoint(boost::asio::ip::make_address(address), port)),
     msgHandler(msgHandler_in)
-{
-    Accept();
-}
+{}
 
 void TCP_Server::Join(std::shared_ptr<TCP_Session> client_session)
 {
@@ -34,11 +33,12 @@ void TCP_Server::Leave(std::shared_ptr<TCP_Session> client_session)
 void TCP_Server::Accept()
 {
     std::cout << "TCP_Server::Accept:\n";
-    server_acceptor.async_accept([this](boost::system::error_code ec, tcp::socket socket)
+    auto self = shared_from_this();
+    server_acceptor.async_accept([this, self](boost::system::error_code ec, tcp::socket socket)
         {
             if (!ec)
             {
-                auto session = std::make_shared<TCP_Session>(std::move(socket), shared_from_this(), msgHandler);
+                auto session = std::make_shared<TCP_Session>(std::move(socket), self, msgHandler);
                 Join(session);
                 session->Start();
             }
@@ -165,8 +165,9 @@ void TCP_Session::ReadMessage()
 
 void TCP_Session::CheckAndSend()
 {
-    //float dt = ft.Mark();
+    float dt = ft.Mark();
     //float dtMs = dt * 1000.0f;
+    timing += dt;
     //std::cout << "void App::UpdateLoop(): Frame Time: " << dtMs << " ms\n";
      
     auto self = shared_from_this();
@@ -174,7 +175,25 @@ void TCP_Session::CheckAndSend()
     timer.expires_after(std::chrono::milliseconds(8));
     timer.async_wait([this, self](boost::system::error_code ec)
         {
+
             msg = msgHandler->MSGToServer();
+
+            std::cout << "New raw message: '" << msg << "'" << std::endl;
+
+            start_position = "";
+            start_position = "start_position:" + msg;
+
+            std::cout << "New Starting position: '" << start_position << "'" << std::endl;
+            if (start_position.back() == '\n')
+            {
+                start_position.pop_back();
+            }
+
+            if (timing > 1.0f)
+            {
+                SaveToFastAPI();
+                timing = 0.0f;
+            }
 
             if (!client_socket->is_open())
             {
@@ -254,7 +273,7 @@ bool TCP_Session::AskFastAPI()
 void TCP_Session::GetPositionFromFastAPI()
 {
     std::string url = "/get-position/" + username;
-    
+
     http::request<http::string_body> req{ http::verb::get, url, 11 };
     req.set(http::field::host, "localhost");
     req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
@@ -267,7 +286,7 @@ void TCP_Session::GetPositionFromFastAPI()
 
     const std::string& fastapi_response = res.body();
 
-    fastapi_socket.close();
+    //fastapi_socket.close();
     
     boost::json::value json = boost::json::parse(fastapi_response);
     
@@ -280,4 +299,61 @@ void TCP_Session::GetPositionFromFastAPI()
 
 void TCP_Session::SaveToFastAPI()
 {
+    std::string url = "/update-position/" + username;
+
+    std::cout << "string to save: " << start_position << std::endl;
+    int x = 0;
+    int y = 0;
+    if (start_position.compare(0, Constants::prefix_len, Constants::prefix) == 0)
+    {
+        const char* data = start_position.c_str() + Constants::prefix_len;
+
+        while (*data >= '0' && *data <= '9')
+        {
+            x = x * 10 + (*data - '0');
+            ++data;
+        }
+
+        if (*data == ',') ++data;
+
+        while (*data >= '0' && *data <= '9')
+        {
+            y = y * 10 + (*data - '0');
+            ++data;
+        }
+    }
+
+    std::cout << "extracted values: x = " << x << ", y = " << y << "\n\n";
+
+    // Prepare JSON body string
+    boost::json::object obj;
+    obj["x"] = x;
+    obj["y"] = y;
+    std::string body = boost::json::serialize(obj);
+
+    std::cout << "constructed save position: " << body << std::endl;
+
+    // Create HTTP POST request
+    http::request<http::string_body> req{ http::verb::post, url, 11 };
+    req.set(http::field::host, "localhost");
+    req.set(http::field::user_agent, BOOST_BEAST_VERSION_STRING);
+    req.set(http::field::content_type, "application/json");
+    req.body() = body;
+    req.prepare_payload();
+    // Send request
+    http::write(fastapi_socket, req);
+
+    // Read response
+    boost::system::error_code ec;
+    beast::flat_buffer buffer;
+    http::response<http::string_body> res;
+    http::read(fastapi_socket, buffer, res, ec);
+    if (ec) 
+    {
+        std::cerr << "Read error: " << ec.message() << "\n";
+        return;
+    }
+    std::cout << "SaveToFastAPI response: " << res.body() << std::endl;
+
+    //fastapi_socket.close();
 }

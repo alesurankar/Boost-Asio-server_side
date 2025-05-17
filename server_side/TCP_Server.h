@@ -23,9 +23,9 @@ class TCP_Server : public std::enable_shared_from_this<TCP_Server>
 public:
     TCP_Server(boost::asio::io_context& io_context, const std::string& address, short port, std::shared_ptr<MessageHandler> msgHandler_in);
     void Leave(std::shared_ptr<TCP_Session> client_session);
+    void Accept();
 private:
     void Join(std::shared_ptr<TCP_Session> client_session);
-    void Accept();
 private:
     std::atomic<int> client_counter;
     tcp::acceptor server_acceptor;
@@ -50,6 +50,7 @@ private:
     void GetPositionFromFastAPI();
     void SaveToFastAPI();
 private:
+    float timing = 0.0f;
     FrameTimer ft;
     std::string msg; 
     std::string username;

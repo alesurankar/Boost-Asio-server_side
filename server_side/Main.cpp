@@ -16,6 +16,7 @@ int main()
 
     boost::asio::io_context io; 
     global_server = std::make_shared<TCP_Server>(io, "127.0.0.1", 1234, msgHandler);
+	global_server->Accept();
     
 	std::thread networking([&]()
 		{
